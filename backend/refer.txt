@@ -1,0 +1,52 @@
+how many odes
+
+6 nodes in the current graph.py:
+
+collect
+confirm_trip
+load_and_route
+fetch_and_generate
+validate_and_respond
+confirm_issues
+what these are doing what these have
+
+Here's what each of the 6 nodes does:
+
+1. collect
+
+Loads existing trip (if any) from DB
+Calls LLM to classify intent (new trip / modify / query / list trips) and extract details (destination, dates, members, budget)
+Detects if user is switching to a totally different destination mid-trip → starts a fresh session_id for that
+Saves updated trip details to DB
+Computes a quick budget warning (the ~Rs.30/person/day type message)
+2. confirm_trip
+
+Pauses the graph (interrupt) and shows the user their trip details (or the budget warning) asking "confirm or change?"
+If user says "change X", feeds that back into collect again
+If user confirms, moves forward to generate the itinerary
+3. load_and_route
+
+Only runs for read-only questions — "list my trips", "what's my hotel in Kerala trip", "what's day 2 of this trip"
+Fetches the relevant trip/itinerary from DB and answers using the LLM
+Does not touch trip_state or generate anything new — just answers and ends
+4. fetch_and_generate
+
+Calls external APIs: hotels (Places), weather forecast
+Calls Tavily web search once per trip to get a realistic min-budget-per-day for that destination
+Calls the LLM to generate the actual day-by-day itinerary
+5. validate_and_respond
+
+Runs the hard budget-realism check + LLM validation (checks weather logic, hotel consistency, day count, logistics)
+If valid → saves final itinerary to DB, replies with "here's your itinerary!"
+If invalid and retries left → loops back to fetch_and_generate to try again
+If invalid and retries exhausted → moves to confirm_issues
+6. confirm_issues
+
+Pauses (interrupt) and shows the best-effort itinerary + its known issues, asking "proceed anyway or change something?"
+If user proceeds → saves itinerary as generated_with_issues, replies with it
+If user wants changes → loops back to collect with their new message
+
+
+
+
+

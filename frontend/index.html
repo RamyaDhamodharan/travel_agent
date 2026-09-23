@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Payanam</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #a83223;
+    --primary-light: #ffdad4;
+    --tertiary: #006948;
+    --tertiary-light: #85f8c4;
+    --bg: #fbf9f4;
+    --surface: #ffffff;
+    --surface-low: #f5f3ee;
+    --surface-container: #f0eee9;
+    --border: #e4e2dd;
+    --text: #1b1c19;
+    --text-muted: #58413d;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: 260px 1fr 380px;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------- LEFT: History sidebar ---------- */
+  #history-sidebar {
+    background: var(--surface-low);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #history-sidebar .brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    padding: 18px 16px 8px;
+  }
+  #history-sidebar .new-trip-btn {
+    margin: 4px 12px 12px;
+    padding: 10px 14px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 12px;
+  }
+  .history-item {
+    padding: 10px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    font-size: 13.5px;
+    line-height: 1.35;
+  }
+  .history-item:hover { background: var(--surface-container); }
+  .history-item.active { background: var(--primary-light); }
+  .history-item .h-title { font-weight: 600; display: block; }
+  .history-item .h-sub { color: var(--text-muted); font-size: 12px; }
+  .history-empty { color: var(--text-muted); font-size: 13px; padding: 12px; }
+
+  /* ---------- CENTER: Trip view ---------- */
+  #trip-panel {
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+  #trip-panel main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 32px 28px 64px;
+  }
+  .hero { margin-bottom: 28px; }
+  .hero .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: var(--primary); }
+  .hero h1 { font-family: 'Playfair Display', serif; font-size: 34px; margin: 8px 0 16px; line-height: 1.15; }
+  .pill-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+  .pill .value { font-weight: 700; }
+  .pill.cost .value { color: var(--tertiary); }
+  .status-banner { margin-top: 16px; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; display: inline-block; }
+  .status-banner.generated { background: var(--tertiary-light); color: #002114; }
+  .status-banner.issues { background: #fff3cd; color: #664d03; }
+  .status-banner.collecting { background: var(--surface-low); color: var(--text-muted); }
+  .day-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 20px; }
+  .day-tab { flex-shrink: 0; padding: 10px 18px; border-radius: 14px; background: var(--surface-container); cursor: pointer; border: none; font-family: inherit; text-align: left; }
+  .day-tab.active { background: var(--primary); color: white; }
+  .day-tab .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; display: block; }
+  .day-tab .title { font-weight: 600; font-size: 14px; display: block; margin-top: 2px; }
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+  .day-block { display: none; }
+  .day-block.active { display: block; }
+  .day-summary { font-family: 'Playfair Display', serif; font-size: 20px; font-style: italic; margin: 0 0 4px; }
+  .day-date { color: var(--text-muted); font-size: 13px; margin-bottom: 18px; }
+  .activity { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+  .activity::before { content: ''; position: absolute; left: -24px; top: 20px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--surface); }
+  .activity-time { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.03em; }
+  .activity-desc { margin-top: 6px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5; }
+  .notes-card { margin-top: 24px; background: var(--surface-container); border-radius: 14px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+  .notes-card strong { color: var(--text); }
+
+  /* ---------- Meals / "Where to eat" ---------- */
+  .meals-section { margin: 20px 0 8px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .meals-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+  .meal-block { margin-bottom: 14px; }
+  .meal-block:last-child { margin-bottom: 0; }
+  .meal-heading { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tertiary); margin-bottom: 6px; }
+  .meal-options { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .meal-option { background: var(--surface-low); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
+  .meal-name { font-weight: 600; color: var(--text); }
+  .meal-specialty { color: var(--primary); font-size: 12.5px; margin-left: 6px; }
+  .meal-specialty::before { content: '· '; }
+  .meal-distance { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .loading, .error-box, .empty-box { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+  .error-box { color: var(--primary); }
+
+  /* ---------- RIGHT: Chat sidebar ---------- */
+  #chat-sidebar {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  #chat-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #chat-header h2 { font-size: 15px; margin: 0; font-family: 'Playfair Display', serif; }
+  #chat-header button {
+    border: 1px solid var(--border);
+    background: var(--surface-low);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg { padding: 10px 14px; border-radius: 16px; max-width: 90%; line-height: 1.45; white-space: pre-wrap; font-size: 14px; }
+  .msg.user { align-self: flex-end; background: var(--text); color: white; border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--surface-low); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg.error { background: #ffdad6; color: #93000a; border: 1px solid #ba1a1a33; }
+  .interrupt-card { align-self: flex-start; background: var(--surface-low); border: 1px solid var(--border); border-radius: 14px; padding: 14px; max-width: 95%; }
+  .interrupt-card p { margin: 0 0 10px 0; font-size: 14px; }
+  .interrupt-card .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  .interrupt-card button { border: none; border-radius: 999px; padding: 7px 16px; font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .btn-confirm { background: var(--tertiary-light); color: #002114; }
+  .btn-change { background: var(--surface); border: 1px solid var(--border) !important; color: var(--text); }
+  .trip-note { align-self: flex-start; font-size: 12.5px; color: var(--text-muted); }
+  #input-row { padding: 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  #input-row input { flex: 1; border: 1px solid var(--border); border-radius: 999px; padding: 11px 16px; font-size: 14px; font-family: inherit; }
+  #input-row button { background: var(--text); color: white; border: none; border-radius: 999px; width: 40px; height: 40px; cursor: pointer; font-size: 16px; }
+  .typing { font-size: 12.5px; color: var(--text-muted); align-self: flex-start; padding-left: 4px; }
+</style>
+</head>
+<body>
+
+<!-- LEFT: History -->
+<aside id="history-sidebar">
+  <div class="brand" ondblclick="revealSettings()">Payanam</div>
+  <button class="new-trip-btn" onclick="startNewTrip()">+ New trip</button>
+  <div id="history-list"></div>
+</aside>
+
+<!-- CENTER: Trip -->
+<section id="trip-panel">
+  <main id="main"><div class="empty-box">Start a conversation on the right to plan a trip.</div></main>
+</section>
+
+<!-- RIGHT: Chat -->
+<aside id="chat-sidebar">
+  <div id="chat-header">
+    <h2>Chat</h2>
+    <button id="settingsBtn" onclick="openSettings()" style="display:none;">Settings</button>
+  </div>
+  <div id="chat"></div>
+  <div id="input-row">
+    <input id="messageInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()" />
+    <button onclick="sendMessage()">&#8594;</button>
+  </div>
+</aside>
+
+<script>
+  // ================= Config / storage helpers =================
+  function getApiBase() {
+    return localStorage.getItem('payanam_api_base') || 'http://127.0.0.1:8000';
+  }
+  function getUserId() {
+    let uid = localStorage.getItem('payanam_user_id');
+    if (!uid) {
+      uid = 'user_' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('payanam_user_id', uid);
+    }
+    return uid;
+  }
+  function getSessionId() {
+    return localStorage.getItem('payanam_session_id') || null;
+  }
+  function setSessionId(id) {
+    localStorage.setItem('payanam_session_id', id);
+  }
+  function openSettings() {
+    const current = getApiBase();
+    const next = prompt('Backend API base URL:', current);
+    if (next) localStorage.setItem('payanam_api_base', next);
+  }
+
+  // History is kept client-side (the backend has no "list sessions" endpoint yet).
+  // Each entry: { session_id, title, subtitle, updated }
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('payanam_history') || '[]'); }
+    catch (e) { return []; }
+  }
+  function saveHistory(list) {
+    localStorage.setItem('payanam_history', JSON.stringify(list));
+  }
+  function upsertHistory(sessionId, title, subtitle) {
+    const list = getHistory();
+    const idx = list.findIndex(h => h.session_id === sessionId);
+    const entry = { session_id: sessionId, title: title || 'New trip', subtitle: subtitle || '', updated: Date.now() };
+    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+    list.sort((a, b) => b.updated - a.updated);
+    saveHistory(list);
+    renderHistory();
+  }
+  function renderHistory() {
+    const list = getHistory();
+    const el = document.getElementById('history-list');
+    const current = getSessionId();
+    if (!list.length) {
+      el.innerHTML = '<div class="history-empty">No trips yet</div>';
+      return;
+    }
+    el.innerHTML = list.map(h => `
+      <div class="history-item ${h.session_id === current ? 'active' : ''}" onclick="switchSession('${h.session_id}')">
+        <span class="h-title">${escapeHtml(h.title)}</span>
+        ${h.subtitle ? `<span class="h-sub">${escapeHtml(h.subtitle)}</span>` : ''}
+      </div>
+    `).join('');
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function switchSession(sessionId) {
+    setSessionId(sessionId);
+    document.getElementById('chat').innerHTML = '';
+    renderHistory();
+    loadTrip();
+    addBotMessage('Switched to this trip. Continue the conversation here.');
+  }
+
+  function startNewTrip() {
+    localStorage.removeItem('payanam_session_id');
+    document.getElementById('chat').innerHTML = '';
+    document.getElementById('main').innerHTML = '<div class="empty-box">Start a conversation on the right to plan a trip.</div>';
+    renderHistory();
+  }
+
+  // ================= Chat rendering =================
+  const chatEl = document.getElementById('chat');
+
+  function addUserMessage(text) {
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    div.textContent = text;
+    chatEl.appendChild(div);
+    scrollDown();
+  }
+  function addBotMessage(text, isError) {
+    const div = document.createElement('div');
+    div.className = 'msg bot' + (isError ? ' error' : '');
+    div.textContent = text;
+    chatEl.appendChild(div);
+    scrollDown();
+  }
+  function addInterruptCard(interrupt) {
+    const card = document.createElement('div');
+    card.className = 'interrupt-card';
+    const msg = document.createElement('p');
+    msg.textContent = interrupt.message || 'Please confirm to continue.';
+    card.appendChild(msg);
+    const btns = document.createElement('div');
+    btns.className = 'buttons';
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'btn-confirm';
+    confirmBtn.textContent = interrupt.type === 'confirm_generation_issues' ? 'Proceed anyway' : 'Confirm trip';
+    confirmBtn.onclick = () => sendMessage('yes');
+    const changeBtn = document.createElement('button');
+    changeBtn.className = 'btn-change';
+    changeBtn.textContent = interrupt.type === 'confirm_generation_issues' ? 'Fix the issues' : 'Change something';
+    changeBtn.onclick = () => {
+      const el = document.getElementById('messageInput');
+      el.placeholder = 'Tell me what to change...';
+      el.focus();
+    };
+    btns.appendChild(confirmBtn);
+    btns.appendChild(changeBtn);
+    card.appendChild(btns);
+    chatEl.appendChild(card);
+    scrollDown();
+  }
+  function addItineraryNote(itinerary) {
+    const div = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `<strong>${itinerary.destination}</strong> · ₹${itinerary.estimated_total_cost}<br/>Staying at ${itinerary.selected_hotel}`;
+    chatEl.appendChild(div);
+    const note = document.createElement('div');
+    note.className = 'trip-note';
+    note.textContent = 'Full itinerary is shown in the center panel →';
+    chatEl.appendChild(note);
+    scrollDown();
+  }
+  function scrollDown() { chatEl.scrollTop = chatEl.scrollHeight; }
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'typing';
+    div.id = 'typingIndicator';
+    div.textContent = 'Thinking...';
+    chatEl.appendChild(div);
+    scrollDown();
+  }
+  function hideTyping() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  // ================= Networking: chat =================
+  async function sendMessage(overrideText) {
+    const input = document.getElementById('messageInput');
+    const text = overrideText || input.value.trim();
+    if (!text) return;
+
+    if (!overrideText) addUserMessage(text);
+    input.value = '';
+    input.placeholder = 'Type a message...';
+    showTyping();
+
+    try {
+      const response = await fetch(`${getApiBase()}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: getSessionId(),
+          user_id: getUserId(),
+          message: text,
+        }),
+      });
+
+      hideTyping();
+
+      if (!response.ok) {
+        const errBody = await response.text();
+        addBotMessage(`Server error (${response.status}): ${errBody}`, true);
+        return;
+      }
+
+      const data = await response.json();
+      const isNewSession = !getSessionId();
+      setSessionId(data.session_id);
+
+      if (data.interrupt) {
+        addInterruptCard(data.interrupt);
+        upsertHistory(data.session_id, guessTitle(text), 'In progress');
+      } else if (data.itinerary) {
+        addItineraryNote(data.itinerary);
+        upsertHistory(data.session_id, data.itinerary.destination, `₹${data.itinerary.estimated_total_cost}`);
+        // Render straight from the /chat response instead of re-fetching
+        // /trip/{session_id}, which can 404 right after generation.
+        renderTrip({
+          trip_state: data.trip_state || {},
+          status: data.status || 'generated',
+          itinerary: data.itinerary,
+        });
+      } else if (data.reply) {
+        addBotMessage(data.reply);
+        upsertHistory(data.session_id, guessTitle(text), 'In progress');
+      } else {
+        addBotMessage('(no response text)');
+      }
+
+      if (isNewSession) loadTrip();
+    } catch (err) {
+      hideTyping();
+      addBotMessage(`Couldn't reach the server. Check Settings for the correct API URL. (${err.message})`, true);
+    }
+  }
+
+  function guessTitle(text) {
+    return text.length > 40 ? text.slice(0, 40) + '…' : text;
+  }
+
+  // ================= Networking: trip =================
+  async function loadTrip() {
+    const sessionId = getSessionId();
+    const userId = getUserId();
+    const mainEl = document.getElementById('main');
+
+    if (!sessionId) {
+      mainEl.innerHTML = '<div class="empty-box">Start a conversation on the right to plan a trip.</div>';
+      return;
+    }
+
+    mainEl.innerHTML = '<div class="loading">Loading your trip...</div>';
+
+    try {
+      const res = await fetch(`${getApiBase()}/trip/${encodeURIComponent(sessionId)}?user_id=${encodeURIComponent(userId)}`);
+      if (!res.ok) {
+        // Fall back to the last itinerary we already have for this session, if any.
+        const cached = getCachedTrip(sessionId);
+        if (cached) { renderTrip(cached); return; }
+        mainEl.innerHTML = `<div class="error-box">Couldn't load this trip (${res.status}).</div>`;
+        return;
+      }
+      const data = await res.json();
+      renderTrip(data);
+    } catch (err) {
+      mainEl.innerHTML = `<div class="error-box">Couldn't reach the server: ${err.message}</div>`;
+    }
+  }
+
+  function getCachedTrip(sessionId) {
+    try { return JSON.parse(localStorage.getItem('payanam_trip_' + sessionId) || 'null'); }
+    catch (e) { return null; }
+  }
+  function setCachedTrip(sessionId, data) {
+    try { localStorage.setItem('payanam_trip_' + sessionId, JSON.stringify(data)); } catch (e) {}
+  }
+
+  function formatActivity(a) {
+    if (typeof a === 'string') return escapeHtml(a);
+    if (a && typeof a === 'object') {
+      const time = a.time || a.start_time || '';
+      const title = a.title || a.name || a.activity || a.place || a.description || '';
+      const desc = (a.description && a.description !== title) ? a.description : '';
+      let html = '';
+      if (time) html += `<span class="activity-time">${escapeHtml(time)}</span> `;
+      html += `<strong>${escapeHtml(title || 'Activity')}</strong>`;
+      if (desc) html += `<div class="activity-desc">${escapeHtml(desc)}</div>`;
+      return html || escapeHtml(JSON.stringify(a));
+    }
+    return escapeHtml(String(a ?? ''));
+  }
+
+  function formatMeals(meals) {
+    if (!meals || !meals.length) return '';
+    const blocks = meals.map(m => {
+      const options = (m.options || []).map(opt => `
+        <li class="meal-option">
+          <span class="meal-name">${escapeHtml(opt.name || '')}</span>
+          ${opt.specialty ? `<span class="meal-specialty">${escapeHtml(opt.specialty)}</span>` : ''}
+          ${opt.distance ? `<div class="meal-distance">${escapeHtml(opt.distance)}</div>` : ''}
+        </li>
+      `).join('');
+      return `
+        <div class="meal-block">
+          <div class="meal-heading">${escapeHtml(m.meal || '')}</div>
+          <ul class="meal-options">${options}</ul>
+        </div>
+      `;
+    }).join('');
+    return `<div class="meals-section"><div class="meals-title">Where to eat</div>${blocks}</div>`;
+  }
+
+  function renderTrip(data) {
+    if (getSessionId()) setCachedTrip(getSessionId(), data);
+    const mainEl = document.getElementById('main');
+    const trip = data.trip_state || {};
+    const itinerary = data.itinerary;
+
+    if (!itinerary) {
+      mainEl.innerHTML = `
+        <div class="hero">
+          <div class="eyebrow">Trip in progress</div>
+          <h1>${trip.destination || 'Untitled trip'}</h1>
+          <div class="status-banner collecting">This trip hasn't been generated yet — status: ${data.status}</div>
+        </div>
+      `;
+      return;
+    }
+
+    const statusClass = data.status === 'generated' ? 'generated' : 'issues';
+    const statusText = data.status === 'generated' ? 'Itinerary confirmed' : 'Generated with some noted issues';
+
+    const pills = `
+      <div class="pill-row">
+        <div class="pill"><span>👥</span><span class="value">${trip.members ?? '?'}</span><span>travelers</span></div>
+        <div class="pill cost"><span>💰</span><span class="value">₹${itinerary.estimated_total_cost}</span></div>
+        <div class="pill"><span>🏨</span><span>${itinerary.selected_hotel}</span></div>
+        <div class="pill"><span>📅</span><span>${trip.start_date} → ${trip.end_date}</span></div>
+      </div>
+    `;
+
+    const dayTabs = itinerary.days.map((d, i) => `
+      <button class="day-tab ${i === 0 ? 'active' : ''}" data-day="${i}" onclick="showDay(${i})">
+        <span class="label">Day ${d.day_number}</span>
+        <span class="title">${d.summary}</span>
+      </button>
+    `).join('');
+
+    const dayBlocks = itinerary.days.map((d, i) => `
+      <div class="day-block ${i === 0 ? 'active' : ''}" id="day-${i}">
+        <div class="timeline">
+          <p class="day-summary">${d.summary}</p>
+          <p class="day-date">${d.date}</p>
+          ${d.activities.map(a => `<div class="activity">${formatActivity(a)}</div>`).join('')}
+        </div>
+        ${formatMeals(d.meals)}
+      </div>
+    `).join('');
+
+    mainEl.innerHTML = `
+      <div class="hero">
+        <div class="eyebrow">${itinerary.days.length} Days · Trip Plan</div>
+        <h1>${itinerary.destination}</h1>
+        ${pills}
+        <div class="status-banner ${statusClass}">${statusText}</div>
+      </div>
+      <div class="day-tabs">${dayTabs}</div>
+      ${dayBlocks}
+      ${itinerary.notes ? `<div class="notes-card"><strong>Notes:</strong> ${itinerary.notes}</div>` : ''}
+    `;
+  }
+
+  function showDay(index) {
+    document.querySelectorAll('.day-tab').forEach((el, i) => el.classList.toggle('active', i === index));
+    document.querySelectorAll('.day-block').forEach((el, i) => el.classList.toggle('active', i === index));
+  }
+
+  // ================= Dev-only Settings visibility =================
+  function revealSettings() {
+    document.getElementById('settingsBtn').style.display = '';
+  }
+  if (new URLSearchParams(window.location.search).get('dev') === '1') {
+    revealSettings();
+  }
+
+  // ================= Init =================
+  renderHistory();
+  loadTrip();
+</script>
+
+</body>
+</html>
