@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.db.session import async_session_maker
 from app.graph import build_graph
 from app.storage import save_message, list_trips_for_user, load_trip, get_itinerary, get_history
+from app.tools.places_search import get_places_guide
 
 app = FastAPI(title="Travel Planning Agent")
 
@@ -164,6 +165,25 @@ async def get_session(session_id: str, user_id: str):
     }
 
 
+@app.get("/places")
+async def places(destination: str):
+    """Categorized 'places to visit' guide for a destination (religious
+    sites, waterfalls, wildlife, museums, unique experiences, etc), backed by
+    a live web search. Independent of trip planning -- just an explore/lookup
+    feature the frontend can call directly from a place-name search box."""
+    guide = await get_places_guide(destination)
+    return guide.model_dump()
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    # Lets you start the server with `python app/main.py` instead of typing
+    # the uvicorn command by hand. --reload still works via the CLI if you
+    # prefer that for development: `uvicorn app.main:app --reload`.
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

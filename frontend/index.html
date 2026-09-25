@@ -1,571 +1,876 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Payanam</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Voyageur — Trip Planner</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          surface: "#121927", "surface-card": "#151C2C",
+          primary: "#FF5E3A", "primary-hover": "#FF4828",
+          "accent-blue": "#38BDF8", "accent-teal": "#2DD4BF",
+          "accent-amber": "#FBBF24", "accent-purple": "#A855F7", "accent-rose": "#FB7185",
+        },
+        fontFamily: { sans: ["'Plus Jakarta Sans'", "sans-serif"], serif: ["'Playfair Display'", "serif"] }
+      }
+    }
+  }
+</script>
 <style>
-  :root {
-    --primary: #a83223;
-    --primary-light: #ffdad4;
-    --tertiary: #006948;
-    --tertiary-light: #85f8c4;
-    --bg: #fbf9f4;
-    --surface: #ffffff;
-    --surface-low: #f5f3ee;
-    --surface-container: #f0eee9;
-    --border: #e4e2dd;
-    --text: #1b1c19;
-    --text-muted: #58413d;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    display: grid;
-    grid-template-columns: 260px 1fr 380px;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  /* ---------- LEFT: History sidebar ---------- */
-  #history-sidebar {
-    background: var(--surface-low);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  #history-sidebar .brand {
-    font-family: 'Playfair Display', serif;
-    font-size: 20px;
-    font-weight: 700;
-    padding: 18px 16px 8px;
-  }
-  #history-sidebar .new-trip-btn {
-    margin: 4px 12px 12px;
-    padding: 10px 14px;
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  #history-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 8px 12px;
-  }
-  .history-item {
-    padding: 10px 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin-bottom: 2px;
-    font-size: 13.5px;
-    line-height: 1.35;
-  }
-  .history-item:hover { background: var(--surface-container); }
-  .history-item.active { background: var(--primary-light); }
-  .history-item .h-title { font-weight: 600; display: block; }
-  .history-item .h-sub { color: var(--text-muted); font-size: 12px; }
-  .history-empty { color: var(--text-muted); font-size: 13px; padding: 12px; }
-
-  /* ---------- CENTER: Trip view ---------- */
-  #trip-panel {
-    overflow-y: auto;
-    border-right: 1px solid var(--border);
-  }
-  #trip-panel main {
-    max-width: 820px;
-    margin: 0 auto;
-    padding: 32px 28px 64px;
-  }
-  .hero { margin-bottom: 28px; }
-  .hero .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: var(--primary); }
-  .hero h1 { font-family: 'Playfair Display', serif; font-size: 34px; margin: 8px 0 16px; line-height: 1.15; }
-  .pill-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .pill { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
-  .pill .value { font-weight: 700; }
-  .pill.cost .value { color: var(--tertiary); }
-  .status-banner { margin-top: 16px; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; display: inline-block; }
-  .status-banner.generated { background: var(--tertiary-light); color: #002114; }
-  .status-banner.issues { background: #fff3cd; color: #664d03; }
-  .status-banner.collecting { background: var(--surface-low); color: var(--text-muted); }
-  .day-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 20px; }
-  .day-tab { flex-shrink: 0; padding: 10px 18px; border-radius: 14px; background: var(--surface-container); cursor: pointer; border: none; font-family: inherit; text-align: left; }
-  .day-tab.active { background: var(--primary); color: white; }
-  .day-tab .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; display: block; }
-  .day-tab .title { font-weight: 600; font-size: 14px; display: block; margin-top: 2px; }
-  .timeline { position: relative; padding-left: 28px; }
-  .timeline::before { content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
-  .day-block { display: none; }
-  .day-block.active { display: block; }
-  .day-summary { font-family: 'Playfair Display', serif; font-size: 20px; font-style: italic; margin: 0 0 4px; }
-  .day-date { color: var(--text-muted); font-size: 13px; margin-bottom: 18px; }
-  .activity { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
-  .activity::before { content: ''; position: absolute; left: -24px; top: 20px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--surface); }
-  .activity-time { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.03em; }
-  .activity-desc { margin-top: 6px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5; }
-  .notes-card { margin-top: 24px; background: var(--surface-container); border-radius: 14px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: var(--text-muted); }
-  .notes-card strong { color: var(--text); }
-
-  /* ---------- Meals / "Where to eat" ---------- */
-  .meals-section { margin: 20px 0 8px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
-  .meals-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
-  .meal-block { margin-bottom: 14px; }
-  .meal-block:last-child { margin-bottom: 0; }
-  .meal-heading { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--tertiary); margin-bottom: 6px; }
-  .meal-options { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .meal-option { background: var(--surface-low); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
-  .meal-name { font-weight: 600; color: var(--text); }
-  .meal-specialty { color: var(--primary); font-size: 12.5px; margin-left: 6px; }
-  .meal-specialty::before { content: '· '; }
-  .meal-distance { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
-  .loading, .error-box, .empty-box { text-align: center; padding: 80px 20px; color: var(--text-muted); }
-  .error-box { color: var(--primary); }
-
-  /* ---------- RIGHT: Chat sidebar ---------- */
-  #chat-sidebar {
-    display: flex;
-    flex-direction: column;
-    background: var(--surface);
-    overflow: hidden;
-  }
-  #chat-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  #chat-header h2 { font-size: 15px; margin: 0; font-family: 'Playfair Display', serif; }
-  #chat-header button {
-    border: 1px solid var(--border);
-    background: var(--surface-low);
-    border-radius: 999px;
-    padding: 5px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  #chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .msg { padding: 10px 14px; border-radius: 16px; max-width: 90%; line-height: 1.45; white-space: pre-wrap; font-size: 14px; }
-  .msg.user { align-self: flex-end; background: var(--text); color: white; border-bottom-right-radius: 4px; }
-  .msg.bot { align-self: flex-start; background: var(--surface-low); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-  .msg.error { background: #ffdad6; color: #93000a; border: 1px solid #ba1a1a33; }
-  .interrupt-card { align-self: flex-start; background: var(--surface-low); border: 1px solid var(--border); border-radius: 14px; padding: 14px; max-width: 95%; }
-  .interrupt-card p { margin: 0 0 10px 0; font-size: 14px; }
-  .interrupt-card .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-  .interrupt-card button { border: none; border-radius: 999px; padding: 7px 16px; font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
-  .btn-confirm { background: var(--tertiary-light); color: #002114; }
-  .btn-change { background: var(--surface); border: 1px solid var(--border) !important; color: var(--text); }
-  .trip-note { align-self: flex-start; font-size: 12.5px; color: var(--text-muted); }
-  #input-row { padding: 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
-  #input-row input { flex: 1; border: 1px solid var(--border); border-radius: 999px; padding: 11px 16px; font-size: 14px; font-family: inherit; }
-  #input-row button { background: var(--text); color: white; border: none; border-radius: 999px; width: 40px; height: 40px; cursor: pointer; font-size: 16px; }
-  .typing { font-size: 12.5px; color: var(--text-muted); align-self: flex-start; padding-left: 4px; }
+  html, body { margin:0; padding:0; background:#0A0E17; color:#E2E8F0; }
+  body { overscroll-behavior:none; }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb { background:#2a3346; border-radius:8px; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 20; }
+  .msg { white-space: pre-wrap; }
+  .day-block { display:none; }
+  .day-block.active { display:block; }
+  .drawer { transition: transform .28s ease; }
+  .fade-in { animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  input::placeholder { color:#64748b; }
 </style>
 </head>
-<body>
+<body class="font-sans text-slate-200 antialiased min-h-screen relative bg-[#0A0E17]">
 
-<!-- LEFT: History -->
-<aside id="history-sidebar">
-  <div class="brand" ondblclick="revealSettings()">Payanam</div>
-  <button class="new-trip-btn" onclick="startNewTrip()">+ New trip</button>
-  <div id="history-list"></div>
+<!-- Ambient background -->
+<div class="fixed inset-0 pointer-events-none -z-20 overflow-hidden">
+  <div class="absolute -top-32 -left-32 w-[600px] h-[600px] bg-gradient-to-br from-indigo-900/25 via-purple-900/20 to-transparent rounded-full blur-[140px]"></div>
+  <div class="absolute top-1/4 right-0 w-[550px] h-[550px] bg-gradient-to-bl from-rose-900/20 via-orange-950/15 to-transparent rounded-full blur-[130px]"></div>
+  <div class="absolute bottom-10 left-1/3 w-[650px] h-[650px] bg-gradient-to-tr from-cyan-950/20 via-emerald-950/15 to-transparent rounded-full blur-[150px]"></div>
+</div>
+
+<!-- ===================== HEADER ===================== -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-[#0D131F]/90 backdrop-blur-xl border-b border-slate-800/80 shadow-[0_4px_30px_rgba(0,0,0,0.45)]">
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 shrink-0">
+        <button onclick="toggleHistory(true)" class="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-slate-800/80 transition-colors" title="Your trips">
+          <span class="material-symbols-outlined text-slate-300 text-[20px]">menu</span>
+        </button>
+        <div class="flex items-center gap-2 cursor-pointer" onclick="toggleHistory(true)">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF5E3A] to-[#DC2626] flex items-center justify-center shadow-[0_0_14px_rgba(255,94,58,0.35)]">
+            <span class="material-symbols-outlined text-white text-[18px]">explore</span>
+          </div>
+          <div class="leading-none hidden sm:block">
+            <div class="text-sm font-extrabold text-white tracking-tight">VOYAGE<span class="text-primary">UR</span></div>
+            <div class="text-[9px] text-slate-500 font-semibold tracking-[0.16em]">TRAVEL PLANNER</div>
+          </div>
+        </div>
+        <div class="h-6 w-px bg-slate-800 hidden sm:block"></div>
+        <button onclick="toggleHistory(true)" id="tripSwitcher" class="hidden sm:flex items-center gap-2.5 bg-gradient-to-r from-blue-950/60 to-indigo-950/50 border border-blue-700/40 hover:border-blue-500/60 px-3.5 py-1.5 rounded-full transition-all text-left group max-w-[280px]">
+          <span class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shrink-0">
+            <span class="material-symbols-outlined text-[14px]">flight_takeoff</span>
+          </span>
+          <span id="tripSwitcherLabel" class="text-xs font-bold text-slate-100 group-hover:text-blue-300 transition-colors truncate">No trip yet</span>
+          <span class="material-symbols-outlined text-slate-400 group-hover:text-slate-300 text-[16px] shrink-0">expand_more</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <div id="syncPill" class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-semibold">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Connected</span>
+        </div>
+        <button onclick="startNewTrip()" class="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FF5E3A] via-[#EF4444] to-[#E11D48] hover:from-[#FF7043] hover:to-[#F43F5E] text-white text-xs font-bold shadow-[0_0_20px_rgba(255,94,58,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+          <span class="material-symbols-outlined text-[17px] font-bold">add</span>
+          <span>New Trip</span>
+        </button>
+        <button onclick="toggleExplore(true)" id="exploreToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700/70 transition-colors">
+          <span class="material-symbols-outlined text-[16px] text-emerald-400">travel_explore</span>
+          <span class="hidden lg:inline">Explore</span>
+        </button>
+        <button onclick="toggleChat(true)" id="chatToggleBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700/70 transition-colors relative">
+          <span class="material-symbols-outlined text-[16px] text-cyan-400">forum</span>
+          <span class="hidden lg:inline">Chat</span>
+        </button>
+        <button onclick="openSettings()" id="settingsBtn" class="p-1.5 rounded-full text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors" title="Backend URL settings">
+          <span class="material-symbols-outlined text-[20px]">settings</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== LEFT HISTORY DRAWER ===================== -->
+<div id="historyBackdrop" onclick="toggleHistory(false)" class="fixed inset-0 bg-black/60 z-[60] hidden"></div>
+<aside id="historyDrawer" class="drawer fixed top-0 left-0 bottom-0 w-[300px] z-[70] bg-[#0D131F] border-r border-slate-800 -translate-x-full flex flex-col">
+  <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+    <div class="text-sm font-extrabold text-white">Your Trips</div>
+    <button onclick="toggleHistory(false)" class="p-1 rounded-full hover:bg-slate-800 text-slate-400"><span class="material-symbols-outlined text-[18px]">close</span></button>
+  </div>
+  <button onclick="startNewTrip()" class="m-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white text-xs font-bold shadow-md">
+    <span class="material-symbols-outlined text-[16px]">add</span> New trip
+  </button>
+  <div id="history-list" class="flex-1 overflow-y-auto px-3 pb-4 flex flex-col gap-1.5"></div>
 </aside>
 
-<!-- CENTER: Trip -->
-<section id="trip-panel">
-  <main id="main"><div class="empty-box">Start a conversation on the right to plan a trip.</div></main>
-</section>
-
-<!-- RIGHT: Chat -->
-<aside id="chat-sidebar">
-  <div id="chat-header">
-    <h2>Chat</h2>
-    <button id="settingsBtn" onclick="openSettings()" style="display:none;">Settings</button>
+<!-- ===================== MAIN ===================== -->
+<main class="w-full pt-20 pb-16">
+  <div id="app-root" class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center py-32 text-slate-500">
+      <span class="material-symbols-outlined text-[42px] mb-2 block opacity-50">travel_explore</span>
+      <p class="text-sm">Open chat and tell me about a trip to get started.</p>
+      <button onclick="toggleChat(true)" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white text-xs font-bold">
+        <span class="material-symbols-outlined text-[16px]">forum</span> Start planning
+      </button>
+    </div>
   </div>
-  <div id="chat"></div>
-  <div id="input-row">
-    <input id="messageInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()" />
-    <button onclick="sendMessage()">&#8594;</button>
+</main>
+
+<!-- ===================== CHAT DRAWER (right) ===================== -->
+<div id="chatBackdrop" onclick="toggleChat(false)" class="fixed inset-0 bg-black/60 z-[60] hidden"></div>
+<aside id="chatDrawer" class="drawer fixed top-0 right-0 bottom-0 w-full sm:w-[400px] z-[70] bg-[#0D131F] border-l border-slate-800 translate-x-full flex flex-col">
+  <div class="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-cyan-400 text-[20px]">forum</span>
+      <div class="text-sm font-extrabold text-white">Trip Assistant</div>
+    </div>
+    <button onclick="toggleChat(false)" class="p-1 rounded-full hover:bg-slate-800 text-slate-400"><span class="material-symbols-outlined text-[18px]">close</span></button>
+  </div>
+  <div id="chat" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
+  <div id="typingRow" class="px-4 pb-1 text-[11px] text-slate-500 hidden">Assistant is thinking…</div>
+  <div class="p-3 border-t border-slate-800 flex items-center gap-2 shrink-0">
+    <input id="messageInput" type="text" placeholder="Tell me about your trip..." class="flex-1 bg-slate-900 border border-slate-700 focus:border-primary rounded-full px-4 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-500" onkeydown="if(event.key==='Enter') sendMessage()"/>
+    <button onclick="sendMessage()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all">
+      <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
+    </button>
   </div>
 </aside>
+
+<!-- ===================== EXPLORE DRAWER (places-to-visit lookup) ===================== -->
+<div id="exploreBackdrop" onclick="toggleExplore(false)" class="fixed inset-0 bg-black/60 z-[60] hidden"></div>
+<aside id="exploreDrawer" class="drawer fixed top-0 right-0 bottom-0 w-full sm:w-[440px] z-[70] bg-[#0D131F] border-l border-slate-800 translate-x-full flex flex-col">
+  <div class="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-emerald-400 text-[20px]">travel_explore</span>
+      <div class="text-sm font-extrabold text-white">Explore a Place</div>
+    </div>
+    <button onclick="toggleExplore(false)" class="p-1 rounded-full hover:bg-slate-800 text-slate-400"><span class="material-symbols-outlined text-[18px]">close</span></button>
+  </div>
+  <div class="p-3 border-b border-slate-800 flex items-center gap-2 shrink-0">
+    <input id="placeInput" type="text" placeholder="e.g. Tirunelveli, Ooty, Kyoto..." class="flex-1 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-full px-4 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-500" onkeydown="if(event.key==='Enter') searchPlaces()"/>
+    <button onclick="searchPlaces()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all">
+      <span class="material-symbols-outlined text-[18px]">search</span>
+    </button>
+  </div>
+  <div id="placesResults" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+    <div class="text-center text-slate-500 text-xs py-16">
+      <span class="material-symbols-outlined text-[36px] mb-2 block opacity-50">explore</span>
+      Type a place name to see a categorized sightseeing guide.
+    </div>
+  </div>
+</aside>
+
+<!-- Mobile floating chat button -->
+<button onclick="toggleChat(true)" class="sm:hidden fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white flex items-center justify-center shadow-[0_0_24px_rgba(255,94,58,0.55)]">
+  <span class="material-symbols-outlined text-[24px]">forum</span>
+</button>
+
+<footer class="w-full bg-[#0D131F]/90 border-t border-slate-800/80 py-5 backdrop-blur-xl">
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+    <div class="flex items-center gap-2">
+      <span class="font-extrabold text-white">Voyageur</span>
+      <span class="text-slate-700">•</span>
+      <span>Travel Workspace</span>
+    </div>
+    <span id="apiBaseFooter" class="font-mono text-[11px] text-slate-600"></span>
+  </div>
+</footer>
 
 <script>
-  // ================= Config / storage helpers =================
-  function getApiBase() {
-    return localStorage.getItem('payanam_api_base') || 'http://127.0.0.1:8000';
-  }
-  function getUserId() {
-    let uid = localStorage.getItem('payanam_user_id');
-    if (!uid) {
-      uid = 'user_' + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem('payanam_user_id', uid);
-    }
-    return uid;
-  }
-  function getSessionId() {
-    return localStorage.getItem('payanam_session_id') || null;
-  }
-  function setSessionId(id) {
-    localStorage.setItem('payanam_session_id', id);
-  }
-  function openSettings() {
-    const current = getApiBase();
-    const next = prompt('Backend API base URL:', current);
-    if (next) localStorage.setItem('payanam_api_base', next);
-  }
+// ============================================================
+// Config / storage helpers
+// ============================================================
+function getApiBase() { return localStorage.getItem('voyageur_api_base') || 'http://127.0.0.1:8000'; }
+function getUserId() {
+  let uid = localStorage.getItem('voyageur_user_id');
+  if (!uid) { uid = 'user_' + Math.random().toString(36).slice(2, 10); localStorage.setItem('voyageur_user_id', uid); }
+  return uid;
+}
+function getSessionId() { return localStorage.getItem('voyageur_session_id') || null; }
+function setSessionId(id) { localStorage.setItem('voyageur_session_id', id); }
+function openSettings() {
+  const next = prompt('Backend API base URL:', getApiBase());
+  if (next) { localStorage.setItem('voyageur_api_base', next); renderFooter(); }
+}
+function renderFooter() { document.getElementById('apiBaseFooter').textContent = getApiBase(); }
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtINR(n) { if (n === null || n === undefined || isNaN(n)) return '—'; return '₹' + Math.round(Number(n)).toLocaleString('en-IN'); }
+function prettyStatus(s) {
+  if (!s) return 'In progress';
+  const map = { generated: 'Itinerary confirmed', generated_with_issues: 'Generated — some issues noted', collecting: 'Collecting details' };
+  if (map[s]) return map[s];
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
-  // History is kept client-side (the backend has no "list sessions" endpoint yet).
-  // Each entry: { session_id, title, subtitle, updated }
-  function getHistory() {
-    try { return JSON.parse(localStorage.getItem('payanam_history') || '[]'); }
-    catch (e) { return []; }
-  }
-  function saveHistory(list) {
-    localStorage.setItem('payanam_history', JSON.stringify(list));
-  }
-  function upsertHistory(sessionId, title, subtitle) {
-    const list = getHistory();
-    const idx = list.findIndex(h => h.session_id === sessionId);
-    const entry = { session_id: sessionId, title: title || 'New trip', subtitle: subtitle || '', updated: Date.now() };
-    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
-    list.sort((a, b) => b.updated - a.updated);
-    saveHistory(list);
-    renderHistory();
-  }
-  function renderHistory() {
-    const list = getHistory();
-    const el = document.getElementById('history-list');
-    const current = getSessionId();
-    if (!list.length) {
-      el.innerHTML = '<div class="history-empty">No trips yet</div>';
-      return;
-    }
-    el.innerHTML = list.map(h => `
-      <div class="history-item ${h.session_id === current ? 'active' : ''}" onclick="switchSession('${h.session_id}')">
-        <span class="h-title">${escapeHtml(h.title)}</span>
-        ${h.subtitle ? `<span class="h-sub">${escapeHtml(h.subtitle)}</span>` : ''}
-      </div>
-    `).join('');
-  }
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  }
-
-  function switchSession(sessionId) {
-    setSessionId(sessionId);
-    document.getElementById('chat').innerHTML = '';
-    renderHistory();
-    loadTrip();
-    addBotMessage('Switched to this trip. Continue the conversation here.');
-  }
-
-  function startNewTrip() {
-    localStorage.removeItem('payanam_session_id');
-    document.getElementById('chat').innerHTML = '';
-    document.getElementById('main').innerHTML = '<div class="empty-box">Start a conversation on the right to plan a trip.</div>';
-    renderHistory();
-  }
-
-  // ================= Chat rendering =================
-  const chatEl = document.getElementById('chat');
-
-  function addUserMessage(text) {
-    const div = document.createElement('div');
-    div.className = 'msg user';
-    div.textContent = text;
-    chatEl.appendChild(div);
-    scrollDown();
-  }
-  function addBotMessage(text, isError) {
-    const div = document.createElement('div');
-    div.className = 'msg bot' + (isError ? ' error' : '');
-    div.textContent = text;
-    chatEl.appendChild(div);
-    scrollDown();
-  }
-  function addInterruptCard(interrupt) {
-    const card = document.createElement('div');
-    card.className = 'interrupt-card';
-    const msg = document.createElement('p');
-    msg.textContent = interrupt.message || 'Please confirm to continue.';
-    card.appendChild(msg);
-    const btns = document.createElement('div');
-    btns.className = 'buttons';
-    const confirmBtn = document.createElement('button');
-    confirmBtn.className = 'btn-confirm';
-    confirmBtn.textContent = interrupt.type === 'confirm_generation_issues' ? 'Proceed anyway' : 'Confirm trip';
-    confirmBtn.onclick = () => sendMessage('yes');
-    const changeBtn = document.createElement('button');
-    changeBtn.className = 'btn-change';
-    changeBtn.textContent = interrupt.type === 'confirm_generation_issues' ? 'Fix the issues' : 'Change something';
-    changeBtn.onclick = () => {
-      const el = document.getElementById('messageInput');
-      el.placeholder = 'Tell me what to change...';
-      el.focus();
-    };
-    btns.appendChild(confirmBtn);
-    btns.appendChild(changeBtn);
-    card.appendChild(btns);
-    chatEl.appendChild(card);
-    scrollDown();
-  }
-  function addItineraryNote(itinerary) {
-    const div = document.createElement('div');
-    div.className = 'msg bot';
-    div.innerHTML = `<strong>${itinerary.destination}</strong> · ₹${itinerary.estimated_total_cost}<br/>Staying at ${itinerary.selected_hotel}`;
-    chatEl.appendChild(div);
-    const note = document.createElement('div');
-    note.className = 'trip-note';
-    note.textContent = 'Full itinerary is shown in the center panel →';
-    chatEl.appendChild(note);
-    scrollDown();
-  }
-  function scrollDown() { chatEl.scrollTop = chatEl.scrollHeight; }
-  function showTyping() {
-    const div = document.createElement('div');
-    div.className = 'typing';
-    div.id = 'typingIndicator';
-    div.textContent = 'Thinking...';
-    chatEl.appendChild(div);
-    scrollDown();
-  }
-  function hideTyping() {
-    const el = document.getElementById('typingIndicator');
-    if (el) el.remove();
-  }
-
-  // ================= Networking: chat =================
-  async function sendMessage(overrideText) {
-    const input = document.getElementById('messageInput');
-    const text = overrideText || input.value.trim();
-    if (!text) return;
-
-    if (!overrideText) addUserMessage(text);
-    input.value = '';
-    input.placeholder = 'Type a message...';
-    showTyping();
-
-    try {
-      const response = await fetch(`${getApiBase()}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: getSessionId(),
-          user_id: getUserId(),
-          message: text,
-        }),
-      });
-
-      hideTyping();
-
-      if (!response.ok) {
-        const errBody = await response.text();
-        addBotMessage(`Server error (${response.status}): ${errBody}`, true);
-        return;
-      }
-
-      const data = await response.json();
-      const isNewSession = !getSessionId();
-      setSessionId(data.session_id);
-
-      if (data.interrupt) {
-        addInterruptCard(data.interrupt);
-        upsertHistory(data.session_id, guessTitle(text), 'In progress');
-      } else if (data.itinerary) {
-        addItineraryNote(data.itinerary);
-        upsertHistory(data.session_id, data.itinerary.destination, `₹${data.itinerary.estimated_total_cost}`);
-        // Render straight from the /chat response instead of re-fetching
-        // /trip/{session_id}, which can 404 right after generation.
-        renderTrip({
-          trip_state: data.trip_state || {},
-          status: data.status || 'generated',
-          itinerary: data.itinerary,
-        });
-      } else if (data.reply) {
-        addBotMessage(data.reply);
-        upsertHistory(data.session_id, guessTitle(text), 'In progress');
-      } else {
-        addBotMessage('(no response text)');
-      }
-
-      if (isNewSession) loadTrip();
-    } catch (err) {
-      hideTyping();
-      addBotMessage(`Couldn't reach the server. Check Settings for the correct API URL. (${err.message})`, true);
-    }
-  }
-
-  function guessTitle(text) {
-    return text.length > 40 ? text.slice(0, 40) + '…' : text;
-  }
-
-  // ================= Networking: trip =================
-  async function loadTrip() {
-    const sessionId = getSessionId();
-    const userId = getUserId();
-    const mainEl = document.getElementById('main');
-
-    if (!sessionId) {
-      mainEl.innerHTML = '<div class="empty-box">Start a conversation on the right to plan a trip.</div>';
-      return;
-    }
-
-    mainEl.innerHTML = '<div class="loading">Loading your trip...</div>';
-
-    try {
-      const res = await fetch(`${getApiBase()}/trip/${encodeURIComponent(sessionId)}?user_id=${encodeURIComponent(userId)}`);
-      if (!res.ok) {
-        // Fall back to the last itinerary we already have for this session, if any.
-        const cached = getCachedTrip(sessionId);
-        if (cached) { renderTrip(cached); return; }
-        mainEl.innerHTML = `<div class="error-box">Couldn't load this trip (${res.status}).</div>`;
-        return;
-      }
-      const data = await res.json();
-      renderTrip(data);
-    } catch (err) {
-      mainEl.innerHTML = `<div class="error-box">Couldn't reach the server: ${err.message}</div>`;
-    }
-  }
-
-  function getCachedTrip(sessionId) {
-    try { return JSON.parse(localStorage.getItem('payanam_trip_' + sessionId) || 'null'); }
-    catch (e) { return null; }
-  }
-  function setCachedTrip(sessionId, data) {
-    try { localStorage.setItem('payanam_trip_' + sessionId, JSON.stringify(data)); } catch (e) {}
-  }
-
-  function formatActivity(a) {
-    if (typeof a === 'string') return escapeHtml(a);
-    if (a && typeof a === 'object') {
-      const time = a.time || a.start_time || '';
-      const title = a.title || a.name || a.activity || a.place || a.description || '';
-      const desc = (a.description && a.description !== title) ? a.description : '';
-      let html = '';
-      if (time) html += `<span class="activity-time">${escapeHtml(time)}</span> `;
-      html += `<strong>${escapeHtml(title || 'Activity')}</strong>`;
-      if (desc) html += `<div class="activity-desc">${escapeHtml(desc)}</div>`;
-      return html || escapeHtml(JSON.stringify(a));
-    }
-    return escapeHtml(String(a ?? ''));
-  }
-
-  function formatMeals(meals) {
-    if (!meals || !meals.length) return '';
-    const blocks = meals.map(m => {
-      const options = (m.options || []).map(opt => `
-        <li class="meal-option">
-          <span class="meal-name">${escapeHtml(opt.name || '')}</span>
-          ${opt.specialty ? `<span class="meal-specialty">${escapeHtml(opt.specialty)}</span>` : ''}
-          ${opt.distance ? `<div class="meal-distance">${escapeHtml(opt.distance)}</div>` : ''}
-        </li>
-      `).join('');
-      return `
-        <div class="meal-block">
-          <div class="meal-heading">${escapeHtml(m.meal || '')}</div>
-          <ul class="meal-options">${options}</ul>
-        </div>
-      `;
-    }).join('');
-    return `<div class="meals-section"><div class="meals-title">Where to eat</div>${blocks}</div>`;
-  }
-
-  function renderTrip(data) {
-    if (getSessionId()) setCachedTrip(getSessionId(), data);
-    const mainEl = document.getElementById('main');
-    const trip = data.trip_state || {};
-    const itinerary = data.itinerary;
-
-    if (!itinerary) {
-      mainEl.innerHTML = `
-        <div class="hero">
-          <div class="eyebrow">Trip in progress</div>
-          <h1>${trip.destination || 'Untitled trip'}</h1>
-          <div class="status-banner collecting">This trip hasn't been generated yet — status: ${data.status}</div>
-        </div>
-      `;
-      return;
-    }
-
-    const statusClass = data.status === 'generated' ? 'generated' : 'issues';
-    const statusText = data.status === 'generated' ? 'Itinerary confirmed' : 'Generated with some noted issues';
-
-    const pills = `
-      <div class="pill-row">
-        <div class="pill"><span>👥</span><span class="value">${trip.members ?? '?'}</span><span>travelers</span></div>
-        <div class="pill cost"><span>💰</span><span class="value">₹${itinerary.estimated_total_cost}</span></div>
-        <div class="pill"><span>🏨</span><span>${itinerary.selected_hotel}</span></div>
-        <div class="pill"><span>📅</span><span>${trip.start_date} → ${trip.end_date}</span></div>
-      </div>
-    `;
-
-    const dayTabs = itinerary.days.map((d, i) => `
-      <button class="day-tab ${i === 0 ? 'active' : ''}" data-day="${i}" onclick="showDay(${i})">
-        <span class="label">Day ${d.day_number}</span>
-        <span class="title">${d.summary}</span>
-      </button>
-    `).join('');
-
-    const dayBlocks = itinerary.days.map((d, i) => `
-      <div class="day-block ${i === 0 ? 'active' : ''}" id="day-${i}">
-        <div class="timeline">
-          <p class="day-summary">${d.summary}</p>
-          <p class="day-date">${d.date}</p>
-          ${d.activities.map(a => `<div class="activity">${formatActivity(a)}</div>`).join('')}
-        </div>
-        ${formatMeals(d.meals)}
-      </div>
-    `).join('');
-
-    mainEl.innerHTML = `
-      <div class="hero">
-        <div class="eyebrow">${itinerary.days.length} Days · Trip Plan</div>
-        <h1>${itinerary.destination}</h1>
-        ${pills}
-        <div class="status-banner ${statusClass}">${statusText}</div>
-      </div>
-      <div class="day-tabs">${dayTabs}</div>
-      ${dayBlocks}
-      ${itinerary.notes ? `<div class="notes-card"><strong>Notes:</strong> ${itinerary.notes}</div>` : ''}
-    `;
-  }
-
-  function showDay(index) {
-    document.querySelectorAll('.day-tab').forEach((el, i) => el.classList.toggle('active', i === index));
-    document.querySelectorAll('.day-block').forEach((el, i) => el.classList.toggle('active', i === index));
-  }
-
-  // ================= Dev-only Settings visibility =================
-  function revealSettings() {
-    document.getElementById('settingsBtn').style.display = '';
-  }
-  if (new URLSearchParams(window.location.search).get('dev') === '1') {
-    revealSettings();
-  }
-
-  // ================= Init =================
+// ============================================================
+// Local trip history (backend has no "list sessions by name" title,
+// so we keep display titles client-side; canonical data still comes
+// from GET /trips and GET /trip/{session_id}).
+// ============================================================
+function getHistory() { try { return JSON.parse(localStorage.getItem('voyageur_history') || '[]'); } catch(e) { return []; } }
+function saveHistoryList(list) { localStorage.setItem('voyageur_history', JSON.stringify(list)); }
+function upsertHistory(sessionId, title, subtitle) {
+  const list = getHistory();
+  const idx = list.findIndex(h => h.session_id === sessionId);
+  const entry = { session_id: sessionId, title: title || 'New trip', subtitle: subtitle || '', updated: Date.now() };
+  if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+  list.sort((a,b) => b.updated - a.updated);
+  saveHistoryList(list);
   renderHistory();
-  loadTrip();
-</script>
+}
 
+async function refreshServerTrips() {
+  try {
+    const res = await fetch(`${getApiBase()}/trips?user_id=${encodeURIComponent(getUserId())}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const trips = data.trips || [];
+    const local = getHistory();
+    trips.forEach(t => {
+      const sid = t.session_id || t.id;
+      if (!sid) return;
+      const idx = local.findIndex(h => h.session_id === sid);
+      const title = t.destination || t.title || (idx >= 0 ? local[idx].title : 'Trip');
+      const subtitle = t.status || (idx >= 0 ? local[idx].subtitle : '');
+      const entry = { session_id: sid, title, subtitle, updated: idx >= 0 ? local[idx].updated : Date.now() };
+      if (idx >= 0) local[idx] = entry; else local.push(entry);
+    });
+    local.sort((a,b) => b.updated - a.updated);
+    saveHistoryList(local);
+    renderHistory();
+  } catch (e) { /* backend may not support this yet -- fine, local history still works */ }
+}
+
+function renderHistory() {
+  const list = getHistory();
+  const el = document.getElementById('history-list');
+  const current = getSessionId();
+  if (!list.length) {
+    el.innerHTML = '<div class="text-slate-500 text-xs px-2 py-4 text-center">No trips yet — start a new one.</div>';
+    return;
+  }
+  el.innerHTML = list.map(h => `
+    <button onclick="switchSession('${h.session_id}')" class="text-left px-3 py-2.5 rounded-xl border transition-all ${h.session_id === current ? 'bg-gradient-to-r from-orange-950/50 to-rose-950/40 border-primary/50' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'}">
+      <div class="text-xs font-bold text-slate-100 truncate">${escapeHtml(h.title)}</div>
+      ${h.subtitle ? `<div class="text-[10px] text-slate-500 mt-0.5 truncate">${escapeHtml(h.subtitle)}</div>` : ''}
+    </button>
+  `).join('');
+}
+
+function toggleHistory(open) {
+  const drawer = document.getElementById('historyDrawer');
+  const backdrop = document.getElementById('historyBackdrop');
+  if (open) { backdrop.classList.remove('hidden'); requestAnimationFrame(()=>drawer.classList.remove('-translate-x-full')); }
+  else { drawer.classList.add('-translate-x-full'); setTimeout(()=>backdrop.classList.add('hidden'), 280); }
+}
+function toggleChat(open) {
+  const drawer = document.getElementById('chatDrawer');
+  const backdrop = document.getElementById('chatBackdrop');
+  if (open) { backdrop.classList.remove('hidden'); requestAnimationFrame(()=>drawer.classList.remove('translate-x-full')); }
+  else { drawer.classList.add('translate-x-full'); setTimeout(()=>backdrop.classList.add('hidden'), 280); }
+}
+function toggleExplore(open) {
+  const drawer = document.getElementById('exploreDrawer');
+  const backdrop = document.getElementById('exploreBackdrop');
+  if (open) { backdrop.classList.remove('hidden'); requestAnimationFrame(()=>drawer.classList.remove('translate-x-full')); document.getElementById('placeInput').focus(); }
+  else { drawer.classList.add('translate-x-full'); setTimeout(()=>backdrop.classList.add('hidden'), 280); }
+}
+
+// ============================================================
+// Explore: categorized "places to visit" lookup (GET /places)
+// ============================================================
+const CATEGORY_ICONS = ['temple_buddhist', 'water_drop', 'forest', 'museum', 'diversity_3', 'landscape'];
+const CATEGORY_COLORS = ['rose', 'cyan', 'emerald', 'amber', 'purple', 'indigo'];
+
+async function searchPlaces() {
+  const input = document.getElementById('placeInput');
+  const destination = input.value.trim();
+  const results = document.getElementById('placesResults');
+  if (!destination) return;
+
+  results.innerHTML = `<div class="text-center text-slate-500 text-xs py-16"><span class="material-symbols-outlined text-[28px] animate-spin block mb-2">progress_activity</span>Searching places in ${escapeHtml(destination)}…</div>`;
+
+  try {
+    const res = await fetch(`${getApiBase()}/places?destination=${encodeURIComponent(destination)}`);
+    if (!res.ok) {
+      results.innerHTML = `<div class="text-center text-rose-400 text-xs py-16">Couldn't fetch places (${res.status}). Try again.</div>`;
+      return;
+    }
+    const guide = await res.json();
+    renderPlacesGuide(guide);
+  } catch (err) {
+    results.innerHTML = `<div class="text-center text-rose-400 text-xs py-16">Couldn't reach the server: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderPlacesGuide(guide) {
+  const results = document.getElementById('placesResults');
+  results.innerHTML = buildPlacesGuideHtml(guide);
+}
+
+function buildPlacesGuideHtml(guide) {
+  const cats = guide.categories || [];
+  if (!cats.length) {
+    return `<div class="text-center text-slate-500 text-xs py-6">${escapeHtml(guide.intro || 'No results found for this place.')}</div>`;
+  }
+  const header = `
+    <div class="fade-in">
+      <h3 class="text-lg font-extrabold text-white">${escapeHtml(guide.destination)}</h3>
+      <p class="text-xs text-slate-400 mt-1 leading-relaxed">${escapeHtml(guide.intro || '')}</p>
+    </div>`;
+  const sections = cats.map((cat, ci) => {
+    const color = CATEGORY_COLORS[ci % CATEGORY_COLORS.length];
+    const c = COLOR_CLASSES[color];
+    const icon = CATEGORY_ICONS[ci % CATEGORY_ICONS.length];
+    const items = (cat.places || []).map(p => `
+      <div class="bg-[#141C2C]/95 border ${c.border} ${c.hoverBorder} rounded-xl p-3 transition-all">
+        <div class="text-sm font-bold text-white">${escapeHtml(p.name)}</div>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">${escapeHtml(p.description || '')}</p>
+        ${p.source_url ? `<a href="${escapeHtml(p.source_url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[10px] font-semibold ${color==='rose'?'text-rose-300':color==='cyan'?'text-cyan-300':color==='emerald'?'text-emerald-300':color==='amber'?'text-amber-300':color==='purple'?'text-purple-300':'text-indigo-300'} mt-2 hover:underline"><span class="material-symbols-outlined text-[13px]">open_in_new</span>Source</a>` : ''}
+      </div>`).join('');
+    return `
+      <div class="fade-in">
+        <div class="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wide ${c.text.replace('group-hover:','')} mb-2">
+          <span class="material-symbols-outlined text-[16px]">${icon}</span> ${escapeHtml(cat.category)}
+        </div>
+        <div class="flex flex-col gap-2">${items}</div>
+      </div>`;
+  }).join('');
+  return header + sections;
+}
+
+// Detects chat messages like "places to visit in Chennai" / "things to do
+// in Ooty" / "what to see in Kyoto" and returns the extracted destination,
+// or null if the message doesn't match this intent.
+function detectPlacesIntent(text) {
+  const patterns = [
+    /\b(?:places?|spots?|attractions?)\s+to\s+(?:visit|see|go|explore)\s+(?:in|at|near)\s+(.+)/i,
+    /\bthings?\s+to\s+do\s+(?:in|at|near)\s+(.+)/i,
+    /\bwhat\s+to\s+see\s+(?:in|at|near)\s+(.+)/i,
+    /\btourist\s+spots?\s+(?:in|at|near)\s+(.+)/i,
+    /\bsightseeing\s+(?:in|at|near)\s+(.+)/i,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m && m[1]) {
+      return m[1].trim().replace(/[?.!]+$/, '');
+    }
+  }
+  return null;
+}
+
+function addPlacesGuideCard(guide) {
+  const card = document.createElement('div');
+  card.className = 'fade-in self-start max-w-[95%] bg-slate-800/90 border border-slate-700 rounded-2xl rounded-bl-md p-4 flex flex-col gap-4';
+  card.innerHTML = buildPlacesGuideHtml(guide);
+  chatEl.appendChild(card); scrollDown();
+}
+
+async function switchSession(sessionId) {
+  setSessionId(sessionId);
+  toggleHistory(false);
+  document.getElementById('chat').innerHTML = '';
+  renderHistory();
+  await loadTrip(sessionId);
+}
+
+function startNewTrip() {
+  localStorage.removeItem('voyageur_session_id');
+  document.getElementById('chat').innerHTML = '';
+  document.getElementById('tripSwitcherLabel').textContent = 'No trip yet';
+  document.getElementById('app-root').innerHTML = `
+    <div class="text-center py-32 text-slate-500">
+      <span class="material-symbols-outlined text-[42px] mb-2 block opacity-50">travel_explore</span>
+      <p class="text-sm">Open chat and tell me about a trip to get started.</p>
+      <button onclick="toggleChat(true)" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white text-xs font-bold">
+        <span class="material-symbols-outlined text-[16px]">forum</span> Start planning
+      </button>
+    </div>`;
+  renderHistory();
+  toggleHistory(false);
+  toggleChat(true);
+  addBotMessage("Hi! Tell me where you'd like to go, your dates, how many travelers, and your budget — I'll put together a full itinerary.");
+}
+
+// ============================================================
+// Chat rendering
+// ============================================================
+const chatEl = document.getElementById('chat');
+function scrollDown() { chatEl.scrollTop = chatEl.scrollHeight; }
+
+function addUserMessage(text) {
+  const div = document.createElement('div');
+  div.className = 'msg fade-in self-end max-w-[85%] bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white text-sm rounded-2xl rounded-br-md px-4 py-2.5 shadow-md';
+  div.textContent = text;
+  chatEl.appendChild(div); scrollDown();
+}
+function addBotMessage(text, isError) {
+  const div = document.createElement('div');
+  div.className = 'msg fade-in self-start max-w-[90%] text-sm rounded-2xl rounded-bl-md px-4 py-2.5 border ' + (isError ? 'bg-rose-950/50 border-rose-600/50 text-rose-200' : 'bg-slate-800/90 border-slate-700 text-slate-100');
+  div.textContent = text;
+  chatEl.appendChild(div); scrollDown();
+}
+function addInterruptCard(interrupt) {
+  const card = document.createElement('div');
+  card.className = 'fade-in self-start max-w-[95%] bg-gradient-to-br from-indigo-950/60 to-slate-900 border border-indigo-500/40 rounded-2xl p-4';
+  const p = document.createElement('p');
+  p.className = 'text-sm text-slate-100 mb-3';
+  p.textContent = interrupt.message || 'Please confirm to continue.';
+  card.appendChild(p);
+  const btns = document.createElement('div');
+  btns.className = 'flex gap-2 flex-wrap';
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950';
+  confirmBtn.textContent = interrupt.type === 'confirm_generation_issues' ? 'Proceed anyway' : 'Confirm trip';
+  confirmBtn.onclick = () => sendMessage('yes');
+  const changeBtn = document.createElement('button');
+  changeBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-800 border border-slate-700 text-slate-200';
+  changeBtn.textContent = interrupt.type === 'confirm_generation_issues' ? 'Fix the issues' : 'Change something';
+  changeBtn.onclick = () => { const el = document.getElementById('messageInput'); el.placeholder = 'Tell me what to change...'; el.focus(); };
+  btns.appendChild(confirmBtn); btns.appendChild(changeBtn);
+  card.appendChild(btns);
+  chatEl.appendChild(card); scrollDown();
+}
+function addItineraryNote(itinerary) {
+  const div = document.createElement('div');
+  div.className = 'fade-in self-start max-w-[90%] text-xs text-slate-400 px-1';
+  div.textContent = `${itinerary.destination} · ${fmtINR(itinerary.estimated_total_cost)} · full itinerary is open in the background →`;
+  chatEl.appendChild(div); scrollDown();
+}
+function showTyping() { document.getElementById('typingRow').classList.remove('hidden'); scrollDown(); }
+function hideTyping() { document.getElementById('typingRow').classList.add('hidden'); }
+
+function renderChatHistory(messages) {
+  chatEl.innerHTML = '';
+  if (!messages || !messages.length) {
+    addBotMessage('Switched to this trip. Continue the conversation here.');
+    return;
+  }
+  for (const m of messages) { if (m.role === 'user') addUserMessage(m.text); else addBotMessage(m.text); }
+}
+
+// ============================================================
+// Networking: chat
+// ============================================================
+async function sendMessage(overrideText) {
+  const input = document.getElementById('messageInput');
+  const text = overrideText || input.value.trim();
+  if (!text) return;
+  if (!overrideText) addUserMessage(text);
+  input.value = ''; input.placeholder = 'Tell me about your trip...';
+
+  // "places to visit in X" / "things to do in X" etc -- answer with the
+  // same categorized places guide the Explore panel uses, instead of
+  // sending this to the trip-planning chat graph.
+  if (!overrideText) {
+    const destination = detectPlacesIntent(text);
+    if (destination) {
+      showTyping();
+      try {
+        const res = await fetch(`${getApiBase()}/places?destination=${encodeURIComponent(destination)}`);
+        hideTyping();
+        if (!res.ok) { addBotMessage(`Couldn't fetch places for ${destination} (${res.status}).`, true); return; }
+        const guide = await res.json();
+        addPlacesGuideCard(guide);
+      } catch (err) {
+        hideTyping();
+        addBotMessage(`Couldn't reach the server: ${err.message}`, true);
+      }
+      return;
+    }
+  }
+
+  showTyping();
+
+  try {
+    const response = await fetch(`${getApiBase()}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: getSessionId(), user_id: getUserId(), message: text }),
+    });
+    hideTyping();
+    if (!response.ok) {
+      const errBody = await response.text();
+      addBotMessage(`Server error (${response.status}): ${errBody}`, true);
+      setSyncState(false);
+      return;
+    }
+    setSyncState(true);
+    const data = await response.json();
+    const isNewSession = !getSessionId();
+    setSessionId(data.session_id);
+
+    if (data.interrupt) {
+      addInterruptCard(data.interrupt);
+      upsertHistory(data.session_id, guessTitle(text), 'In progress');
+    } else if (data.itinerary) {
+      addItineraryNote(data.itinerary);
+      upsertHistory(data.session_id, data.itinerary.destination, fmtINR(data.itinerary.estimated_total_cost));
+      // The /chat response doesn't include trip_state (members/dates), only
+      // /trip/{session_id} does -- so refetch the full trip instead of
+      // rendering from the partial chat response. This is what used to
+      // require a manual page refresh to pick up travelers/dates.
+      toggleChat(false);
+      await loadTrip(data.session_id);
+    } else if (data.reply) {
+      addBotMessage(data.reply);
+      upsertHistory(data.session_id, guessTitle(text), 'In progress');
+    } else {
+      addBotMessage('(no response text)');
+    }
+    if (isNewSession) loadTrip();
+  } catch (err) {
+    hideTyping();
+    setSyncState(false);
+    addBotMessage(`Couldn't reach the server. Check the settings gear for the correct API URL. (${err.message})`, true);
+  }
+}
+function guessTitle(text) { return text.length > 40 ? text.slice(0, 40) + '…' : text; }
+function setSyncState(ok) {
+  const pill = document.getElementById('syncPill');
+  if (ok) { pill.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-semibold'; pill.querySelector('span:last-child').textContent = 'Connected'; }
+  else { pill.className = 'hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-500/40 text-rose-400 text-xs font-semibold'; pill.querySelector('span:last-child').textContent = 'Offline'; }
+}
+
+// ============================================================
+// Networking: trip
+// ============================================================
+function getCachedTrip(sessionId) { try { return JSON.parse(localStorage.getItem('voyageur_trip_' + sessionId) || 'null'); } catch(e) { return null; } }
+function setCachedTrip(sessionId, data) { try { localStorage.setItem('voyageur_trip_' + sessionId, JSON.stringify(data)); } catch(e) {} }
+
+async function loadTrip(sessionId) {
+  sessionId = sessionId || getSessionId();
+  const userId = getUserId();
+  const root = document.getElementById('app-root');
+  if (!sessionId) return;
+
+  root.innerHTML = `<div class="text-center py-32 text-slate-500"><span class="material-symbols-outlined text-[28px] animate-spin block mb-2">progress_activity</span>Loading your trip…</div>`;
+
+  try {
+    const res = await fetch(`${getApiBase()}/trip/${encodeURIComponent(sessionId)}?user_id=${encodeURIComponent(userId)}`);
+    if (!res.ok) {
+      const cached = getCachedTrip(sessionId);
+      if (cached) { renderTrip(cached); return; }
+      root.innerHTML = `<div class="text-center py-32 text-rose-400 text-sm">Couldn't load this trip (${res.status}).</div>`;
+      return;
+    }
+    setSyncState(true);
+    const data = await res.json();
+    renderTrip(data);
+    renderChatHistory(data.messages);
+  } catch (err) {
+    setSyncState(false);
+    const cached = getCachedTrip(sessionId);
+    if (cached) { renderTrip(cached); return; }
+    root.innerHTML = `<div class="text-center py-32 text-rose-400 text-sm">Couldn't reach the server: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// ============================================================
+// Trip rendering — Voyageur-style dashboard
+// ============================================================
+const EVENT_COLORS = ['emerald', 'indigo', 'orange', 'amber', 'rose', 'cyan', 'purple'];
+const COLOR_CLASSES = {
+  emerald: { border:'border-emerald-500/30', hoverBorder:'hover:border-emerald-400', shadow:'hover:shadow-[0_8px_32px_rgba(16,185,129,0.24)]', dot:'bg-emerald-400', ring:'border-emerald-400', badge:'bg-emerald-500 text-slate-950', tag:'bg-emerald-950/80 text-emerald-300 border-emerald-500/40', text:'group-hover:text-emerald-300' },
+  indigo:  { border:'border-indigo-500/30',  hoverBorder:'hover:border-indigo-400',  shadow:'hover:shadow-[0_8px_32px_rgba(99,102,241,0.24)]',  dot:'bg-indigo-400',  ring:'border-indigo-400',  badge:'bg-indigo-500 text-white',    tag:'bg-indigo-950/80 text-indigo-300 border-indigo-500/40',   text:'group-hover:text-indigo-300' },
+  orange:  { border:'border-orange-500/30',  hoverBorder:'hover:border-orange-400',  shadow:'hover:shadow-[0_8px_32px_rgba(249,115,22,0.24)]',  dot:'bg-orange-400',  ring:'border-orange-400',  badge:'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950', tag:'bg-orange-950/80 text-orange-300 border-orange-500/40', text:'group-hover:text-orange-300' },
+  amber:   { border:'border-amber-500/30',   hoverBorder:'hover:border-amber-400',   shadow:'hover:shadow-[0_8px_32px_rgba(245,158,11,0.24)]',  dot:'bg-amber-400',   ring:'border-amber-400',   badge:'bg-amber-400 text-slate-950',  tag:'bg-amber-950/80 text-amber-300 border-amber-500/40',    text:'group-hover:text-amber-300' },
+  rose:    { border:'border-rose-500/40',    hoverBorder:'hover:border-rose-400',    shadow:'hover:shadow-[0_12px_40px_rgba(225,29,72,0.30)]', dot:'bg-rose-400',    ring:'border-rose-400',    badge:'bg-gradient-to-r from-rose-500 to-pink-600 text-white', tag:'bg-rose-950/80 text-rose-300 border-rose-500/50',       text:'group-hover:text-rose-300' },
+  cyan:    { border:'border-cyan-500/30',    hoverBorder:'hover:border-cyan-400',    shadow:'hover:shadow-[0_8px_32px_rgba(6,182,212,0.24)]',   dot:'bg-cyan-400',    ring:'border-cyan-400',    badge:'bg-cyan-500 text-slate-950',   tag:'bg-cyan-950/80 text-cyan-300 border-cyan-500/40',        text:'group-hover:text-cyan-300' },
+  purple:  { border:'border-purple-500/30',  hoverBorder:'hover:border-purple-400',  shadow:'hover:shadow-[0_8px_32px_rgba(168,85,247,0.24)]', dot:'bg-purple-400',  ring:'border-purple-400',  badge:'bg-purple-500 text-white',     tag:'bg-purple-950/80 text-purple-300 border-purple-500/40',  text:'group-hover:text-purple-300' },
+};
+
+function activityTitle(a) {
+  if (typeof a === 'string') return a;
+  return a.place || a.title || a.name || a.activity || a.description || 'Activity';
+}
+
+function renderActivityCard(a, idx) {
+  const color = COLOR_CLASSES[EVENT_COLORS[idx % EVENT_COLORS.length]];
+  const time = (typeof a === 'object' && a.time) ? a.time : '';
+  const title = activityTitle(a);
+  const travel = (typeof a === 'object' && a.travel_time_from_previous) ? a.travel_time_from_previous : null;
+  return `
+    <div class="relative mb-5 group">
+      <div class="absolute -left-6 sm:-left-8 top-3.5 z-10 w-7 h-7 rounded-full bg-[#111827] border-2 ${color.ring} shadow-md flex items-center justify-center">
+        <span class="w-2.5 h-2.5 rounded-full ${color.dot}"></span>
+      </div>
+      <div class="bg-[#141C2C]/95 rounded-2xl border ${color.border} ${color.hoverBorder} ${color.shadow} transition-all p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          ${time ? `<span class="px-2.5 py-0.5 rounded-md text-[11px] font-black ${color.badge} tracking-wide">${escapeHtml(time)}</span>` : ''}
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${color.tag}">Activity ${idx+1}</span>
+        </div>
+        <h3 class="text-base font-extrabold text-white ${color.text} transition-colors">${escapeHtml(title)}</h3>
+      </div>
+      ${travel ? `
+      <div class="relative my-2.5 ml-2 pl-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-950/80 to-indigo-950/80 border border-blue-600/40 text-blue-300 text-[11px] font-semibold">
+          <span class="material-symbols-outlined text-[15px] text-cyan-400">directions_walk</span>
+          <span>${escapeHtml(travel)}</span>
+        </div>
+      </div>` : ''}
+    </div>`;
+}
+
+function renderMealsSection(meals) {
+  if (!meals || !meals.length) return '';
+  const icons = { breakfast:'bakery_dining', lunch:'lunch_dining', snacks:'icecream', dinner:'ramen_dining' };
+  const blocks = meals.map(m => {
+    const icon = icons[(m.meal||'').toLowerCase()] || 'restaurant';
+    const options = (m.options || []).map(opt => `
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+        <div class="text-xs font-bold text-slate-100">${escapeHtml(opt.name || '')}</div>
+        ${opt.specialty ? `<div class="text-[11px] text-primary font-semibold mt-0.5">${escapeHtml(opt.specialty)}</div>` : ''}
+        ${opt.distance ? `<div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1"><span class="material-symbols-outlined text-[13px]">near_me</span>${escapeHtml(opt.distance)}</div>` : ''}
+      </div>`).join('');
+    return `
+      <div class="mb-4 last:mb-0">
+        <div class="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wide text-amber-300 mb-2">
+          <span class="material-symbols-outlined text-[15px]">${icon}</span> ${escapeHtml(m.meal || '')}
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${options}</div>
+      </div>`;
+  }).join('');
+  return `
+    <div class="mt-6 bg-[#131B2A]/90 rounded-2xl border border-slate-700/70 p-5">
+      <h4 class="text-sm font-extrabold text-white mb-3 flex items-center gap-1.5"><span class="material-symbols-outlined text-amber-400 text-[18px]">restaurant_menu</span> Where to eat</h4>
+      ${blocks}
+    </div>`;
+}
+
+function renderDayRibbon(days, activeIndex) {
+  return days.map((d, i) => {
+    const active = i === activeIndex;
+    return `
+      <button onclick="showDay(${i})" data-day="${i}" class="${active ? 'flex flex-col items-start px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF5E3A] via-[#EF4444] to-[#E11D48] text-white shadow-[0_0_24px_rgba(255,94,58,0.45)] shrink-0 ring-2 ring-orange-400/80 text-left' : 'group flex flex-col items-start px-3.5 py-2 rounded-xl bg-[#141C2A] hover:bg-[#1A2436] border border-slate-700/80 hover:border-slate-600 shrink-0 text-left transition-all'}">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider ${active ? 'text-orange-100' : 'text-slate-400'}">Day ${d.day_number}${d.date ? ' • ' + escapeHtml(d.date) : ''}</span>
+        <span class="text-xs font-bold mt-0.5 ${active ? 'text-white' : 'text-slate-200 group-hover:text-blue-400'}">${escapeHtml(d.summary || '')}</span>
+      </button>`;
+  }).join('');
+}
+
+function renderBudgetCard(itinerary) {
+  const bb = itinerary.budget_breakdown || {};
+  const total = itinerary.estimated_total_cost || 0;
+  const segs = [
+    { key:'accommodation', label:'Accommodation', color:'from-orange-500 to-amber-500', dot:'bg-orange-400' },
+    { key:'transport', label:'Transport', color:'from-blue-500 to-indigo-500', dot:'bg-cyan-400' },
+    { key:'activities', label:'Activities', color:'from-emerald-500 to-teal-500', dot:'bg-emerald-400' },
+    { key:'miscellaneous', label:'Misc', color:'from-purple-400 to-pink-500', dot:'bg-purple-400' },
+  ];
+  const anySegs = segs.some(s => bb[s.key]);
+  const bar = anySegs ? segs.map(s => {
+    const val = bb[s.key] || 0;
+    const pct = total ? Math.max(0, Math.min(100, (val/total)*100)) : 0;
+    return `<div class="bg-gradient-to-r ${s.color} h-full" style="width:${pct}%" title="${s.label}: ${fmtINR(val)}"></div>`;
+  }).join('') : `<div class="bg-gradient-to-r from-slate-600 to-slate-500 h-full" style="width:100%"></div>`;
+  const grid = anySegs ? segs.map(s => `
+    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full ${s.dot}"></span><span class="text-slate-300 font-medium">${s.label}</span></div>
+      <span class="font-mono font-bold text-white">${fmtINR(bb[s.key])}</span>
+    </div>`).join('') : '';
+  const cuts = (itinerary.budget_cuts && itinerary.budget_cuts.length) ? `
+    <div class="mt-3 bg-amber-950/40 border border-amber-600/40 rounded-xl p-3">
+      <div class="text-[11px] font-extrabold uppercase text-amber-300 mb-1.5">Trimmed to fit budget</div>
+      <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+        ${itinerary.budget_cuts.map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+      </ul>
+    </div>` : '';
+  return `
+    <div class="bg-[#141C2C]/95 rounded-2xl border border-slate-700/70 shadow-lg p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-700/50 flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+          </div>
+          <div><h3 class="text-sm font-extrabold text-white">Trip Budget</h3><p class="text-[11px] text-slate-400 font-medium">Estimated total</p></div>
+        </div>
+        <span class="text-sm font-black text-emerald-400">${fmtINR(total)}</span>
+      </div>
+      <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden flex shadow-inner mb-3">${bar}</div>
+      ${anySegs ? `<div class="grid grid-cols-2 gap-2 text-xs">${grid}</div>` : ''}
+      ${cuts}
+    </div>`;
+}
+
+function renderHotelCard(itinerary, trip) {
+  const hotels = itinerary.hotel_options || [];
+  const isNoHotel = (itinerary.selected_hotel || '').toLowerCase().startsWith('n/a');
+  const list = hotels.length ? hotels.map(h => `
+    <div class="flex items-center justify-between px-2.5 py-2 rounded-lg ${h.selected ? 'bg-orange-950/40 border border-orange-600/40' : 'bg-slate-900/60 border border-slate-800'}">
+      <div class="min-w-0">
+        <div class="text-xs font-bold text-slate-100 truncate">${escapeHtml(h.name)}</div>
+        ${h.address ? `<div class="text-[10px] text-slate-500 truncate">${escapeHtml(h.address)}</div>` : ''}
+      </div>
+      ${h.selected ? '<span class="material-symbols-outlined text-orange-400 text-[16px] shrink-0">check_circle</span>' : ''}
+    </div>`).join('') : '';
+  return `
+    <div class="bg-[#141C2C]/95 rounded-2xl border border-slate-700/70 shadow-lg p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-8 h-8 rounded-lg bg-orange-950 text-orange-400 border border-orange-700/50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[20px]">hotel</span>
+        </div>
+        <div><h3 class="text-sm font-extrabold text-white">Stay</h3><p class="text-[11px] text-slate-400 font-medium">${trip.destination ? escapeHtml(trip.destination) : ''}</p></div>
+      </div>
+      ${isNoHotel ? `<div class="text-xs text-slate-400">Day trip — no accommodation needed.</div>` :
+        `<div class="text-sm font-extrabold text-white mb-2">${escapeHtml(itinerary.selected_hotel || '—')}</div>`}
+      ${list ? `<div class="flex flex-col gap-1.5 mt-2">${list}</div>` : ''}
+    </div>`;
+}
+
+function renderFlightCarCard(itinerary) {
+  const f = itinerary.flight, c = itinerary.car_rental;
+  if (!f && !c) return '';
+  const flightHtml = f ? `
+    <div class="mb-3 last:mb-0">
+      <div class="text-[11px] font-extrabold uppercase text-blue-300 mb-1.5 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">flight</span> Flight</div>
+      <div class="text-xs text-slate-300 space-y-0.5">
+        ${f.airline ? `<div><strong class="text-slate-100">${escapeHtml(f.airline)}</strong></div>` : ''}
+        ${f.date ? `<div>${escapeHtml(f.date)}${f.departs_time ? ' · ' + escapeHtml(f.departs_time) : ''}</div>` : ''}
+        ${f.departure_location || f.arrival_location ? `<div>${escapeHtml(f.departure_location||'')} → ${escapeHtml(f.arrival_location||'')}</div>` : ''}
+        ${f.gate ? `<div>Gate ${escapeHtml(f.gate)}</div>` : ''}
+      </div>
+    </div>` : '';
+  const carHtml = c ? `
+    <div>
+      <div class="text-[11px] font-extrabold uppercase text-indigo-300 mb-1.5 flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">directions_car</span> Car Rental</div>
+      <div class="text-xs text-slate-300 space-y-0.5">
+        ${c.company ? `<div><strong class="text-slate-100">${escapeHtml(c.company)}</strong></div>` : ''}
+        ${c.pickup_date ? `<div>Pickup: ${escapeHtml(c.pickup_date)}${c.pickup_time ? ' ' + escapeHtml(c.pickup_time) : ''} ${c.pickup_location ? '· ' + escapeHtml(c.pickup_location) : ''}</div>` : ''}
+        ${c.dropoff_date ? `<div>Dropoff: ${escapeHtml(c.dropoff_date)}${c.dropoff_time ? ' ' + escapeHtml(c.dropoff_time) : ''} ${c.dropoff_location ? '· ' + escapeHtml(c.dropoff_location) : ''}</div>` : ''}
+      </div>
+    </div>` : '';
+  return `
+    <div class="bg-[#141C2C]/95 rounded-2xl border border-slate-700/70 shadow-lg p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-8 h-8 rounded-lg bg-blue-950 text-blue-400 border border-blue-700/50 flex items-center justify-center"><span class="material-symbols-outlined text-[20px]">luggage</span></div>
+        <div><h3 class="text-sm font-extrabold text-white">Logistics</h3></div>
+      </div>
+      ${flightHtml}${carHtml}
+    </div>`;
+}
+
+function renderNotesCard(itinerary) {
+  if (!itinerary.notes) return '';
+  return `
+    <div class="bg-[#141C2C]/95 rounded-2xl border border-slate-700/70 shadow-lg p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <div class="w-8 h-8 rounded-lg bg-purple-950 text-purple-400 border border-purple-700/50 flex items-center justify-center"><span class="material-symbols-outlined text-[20px]">sticky_note_2</span></div>
+        <h3 class="text-sm font-extrabold text-white">Notes</h3>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(itinerary.notes)}</p>
+    </div>`;
+}
+
+let CURRENT_ITINERARY = null;
+
+function renderTrip(data) {
+  if (getSessionId()) setCachedTrip(getSessionId(), data);
+  const root = document.getElementById('app-root');
+  const trip = data.trip_state || {};
+  const itinerary = data.itinerary;
+
+  document.getElementById('tripSwitcherLabel').textContent = itinerary ? itinerary.destination : (trip.destination || 'Trip in progress');
+
+  if (!itinerary) {
+    root.innerHTML = `
+      <div class="pt-6">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase bg-gradient-to-r from-orange-500 to-rose-600 text-white">In progress</span>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-3">${escapeHtml(trip.destination || 'Untitled trip')}</h1>
+        <p class="text-sm text-slate-400 mt-2">This trip hasn't been generated yet — status: ${escapeHtml(prettyStatus(data.status))}. Continue the conversation in chat.</p>
+        <button onclick="toggleChat(true)" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#FF5E3A] to-[#E11D48] text-white text-xs font-bold">
+          <span class="material-symbols-outlined text-[16px]">forum</span> Continue in chat
+        </button>
+      </div>`;
+    return;
+  }
+
+  CURRENT_ITINERARY = itinerary;
+  const days = itinerary.days || [];
+
+  root.innerHTML = `
+    <section class="pt-6 pb-6">
+      <div class="flex flex-wrap items-center gap-2.5 mb-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow-[0_0_16px_rgba(249,115,22,0.35)]">
+          <span class="material-symbols-outlined text-[13px]">flight_takeoff</span> ${escapeHtml(prettyStatus(data.status))}
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/70 text-slate-300 border border-slate-700">
+          <span class="material-symbols-outlined text-[15px]">groups</span> ${trip.members ?? '—'} travelers
+        </span>
+        ${trip.start_date ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800/70 text-slate-300 border border-slate-700"><span class="material-symbols-outlined text-[15px]">event</span> ${escapeHtml(trip.start_date)} → ${escapeHtml(trip.end_date||'')}</span>` : ''}
+      </div>
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">${escapeHtml(itinerary.destination)}</h1>
+      <p class="text-xs text-slate-500 mt-1">${days.length} day${days.length===1?'':'s'} · Estimated cost ${fmtINR(itinerary.estimated_total_cost)}</p>
+
+      <div class="relative mt-5">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 -mx-1 px-1" id="dayRibbon">
+          ${renderDayRibbon(days, 0)}
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-7 flex flex-col gap-6">
+        <div id="dayBlocks"></div>
+      </div>
+      <div class="lg:col-span-5 flex flex-col gap-6">
+        ${renderHotelCard(itinerary, trip)}
+        ${renderBudgetCard(itinerary)}
+        ${renderFlightCarCard(itinerary)}
+        ${renderNotesCard(itinerary)}
+      </div>
+    </div>`;
+
+  renderDayBlocks(days, 0);
+}
+
+function renderDayBlocks(days, activeIndex) {
+  const container = document.getElementById('dayBlocks');
+  const d = days[activeIndex];
+  if (!d) { container.innerHTML = ''; return; }
+  container.innerHTML = `
+    <div class="bg-[#131B2A]/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-slate-700/70 shadow-lg">
+      <h2 class="text-xl font-extrabold text-white tracking-tight">Day ${d.day_number}${d.date ? ' · ' + escapeHtml(d.date) : ''}</h2>
+      <p class="text-xs text-slate-400 mt-1 font-medium">${escapeHtml(d.summary || '')}</p>
+    </div>
+    <div class="relative pl-6 sm:pl-8 mt-2">
+      <div class="absolute left-3 sm:left-4 top-4 bottom-4 w-1 bg-gradient-to-b from-emerald-400 via-indigo-400 to-rose-500 rounded-full opacity-70"></div>
+      ${(d.activities || []).map((a, i) => renderActivityCard(a, i)).join('')}
+    </div>
+    ${renderMealsSection(d.meals)}
+  `;
+}
+
+function showDay(index) {
+  document.querySelectorAll('#dayRibbon button').forEach((el, i) => {
+    // re-render ribbon fully to keep active styling consistent
+  });
+  if (!CURRENT_ITINERARY) return;
+  document.getElementById('dayRibbon').innerHTML = renderDayRibbon(CURRENT_ITINERARY.days, index);
+  renderDayBlocks(CURRENT_ITINERARY.days, index);
+}
+
+// ============================================================
+// Init
+// ============================================================
+renderFooter();
+renderHistory();
+refreshServerTrips();
+loadTrip();
+if (!getSessionId()) {
+  addBotMessage("Hi! Tell me where you'd like to go, your dates, how many travelers, and your budget — I'll put together a full itinerary.");
+}
+</script>
 </body>
 </html>

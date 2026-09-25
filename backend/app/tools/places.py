@@ -43,10 +43,13 @@ async def _query_mirror(client: httpx.AsyncClient, url: str, query: str) -> dict
     return response.json()
 
 
+OVERPASS_TIMEOUT = 25  # small-town/around queries can be slow on public mirrors
+
+
 async def _overpass(query: str) -> dict:
     """Race all mirrors; return the first successful response."""
     last_error: Exception | None = None
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=OVERPASS_TIMEOUT) as client:
         tasks = [
             asyncio.create_task(_query_mirror(client, url, query))
             for url in OVERPASS_URLS
@@ -68,7 +71,7 @@ async def find_hotels_nearby(
     latitude: float, longitude: float, radius_meters: int = 8000, max_results: int = 5
 ) -> list[dict]:
     query = f"""
-    [out:json][timeout:10];
+    [out:json][timeout:20];
     (
       node["tourism"="hotel"](around:{radius_meters},{latitude},{longitude});
       way["tourism"="hotel"](around:{radius_meters},{latitude},{longitude});

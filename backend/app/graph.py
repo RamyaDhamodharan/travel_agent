@@ -171,10 +171,41 @@ def build_graph(db: AsyncSession):
                 "validation_issues": [f"Generation error: {e}"],
                 "retry_count": MAX_RETRIES,
             }
+        itinerary_dict = itinerary.model_dump()
+
+        # --- Deterministic day-swap: the LLM regenerates the whole itinerary
+        # every time, so a "swap day X and day Y" instruction can't be trusted
+        # to survive a full regen. Apply it here as an exact object swap
+        # instead, then consume the note so it doesn't reapply on later turns.
+        notes = trip_state.get("notes") or []
+        remaining_notes = []
+        for note in notes:
+            if isinstance(note, str) and note.startswith("SWAP_DAYS:"):
+                import re
+                m = re.search(r"day\s*(\d+)\s*and\s*day\s*(\d+)", note, re.IGNORECASE)
+                if m:
+                    day_a, day_b = int(m.group(1)), int(m.group(2))
+                    days = itinerary_dict.get("days", [])
+                    idx_a = next((i for i, d in enumerate(days) if d.get("day_number") == day_a), None)
+                    idx_b = next((i for i, d in enumerate(days) if d.get("day_number") == day_b), None)
+                    if idx_a is not None and idx_b is not None:
+                        days[idx_a], days[idx_b] = days[idx_b], days[idx_a]
+                        days[idx_a]["day_number"] = day_a
+                        days[idx_b]["day_number"] = day_b
+                        # dates stay tied to their calendar position, not to
+                        # the content, so keep original dates in place
+                # consumed -- don't keep reapplying it on every future regen
+                continue
+            remaining_notes.append(note)
+        if len(remaining_notes) != len(notes):
+            trip_state["notes"] = remaining_notes
+            state["trip_state"]["notes"] = remaining_notes
+
         return {
             "hotels": fetched["hotels"],
             "weather": fetched["weather"],
-            "itinerary": itinerary.model_dump(),
+            "itinerary": itinerary_dict,
+            "trip_state": state["trip_state"],
         }
 
     async def validate_and_respond_node(state: GraphState) -> dict:
