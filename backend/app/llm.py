@@ -1,5 +1,5 @@
 """
-Multi-provider fallback chain: Groq -> OpenRouter -> Gemini -> Cerebras.
+Multi-provider fallback chain: Groq -> OpenAI -> OpenRouter -> Cerebras.
 
 Falls through to the next provider on rate limits, quota, auth errors,
 timeouts, server errors, 400s (e.g. Groq structured-output failures), and
@@ -44,7 +44,19 @@ _TRANSIENT_WORDS = (
 SAME_PROVIDER_REPAIR_ATTEMPTS = 1
 
 
+def _is_timeout_type(e: Exception) -> bool:
+    """Catches httpx.ReadTimeout / ConnectTimeout / PoolTimeout / WriteTimeout
+    and asyncio.TimeoutError, all of which commonly carry an EMPTY message
+    (e.g. `ReadTimeout('')`), so a text-based check on str(e) misses them
+    entirely -- that's what let a bare ReadTimeout crash all the way up to
+    a 500 instead of being retried/falling through."""
+    exc_type = type(e).__name__.lower()
+    return "timeout" in exc_type
+
+
 def _is_transient(e: Exception) -> bool:
+    if _is_timeout_type(e):
+        return True
     status = getattr(e, "status_code", None) or getattr(e, "code", None)
     if isinstance(status, int) and status in _TRANSIENT_STATUS:
         return True
@@ -71,6 +83,8 @@ def _should_fall_through(e: Exception) -> bool:
     # the schema constraints -- worth trying another provider.
     if isinstance(e, ValidationError):
         return True
+    if _is_timeout_type(e):
+        return True
     status = getattr(e, "status_code", None) or getattr(e, "code", None)
     if isinstance(status, int) and status in _FALLTHROUGH_STATUS:
         return True
@@ -79,6 +93,16 @@ def _should_fall_through(e: Exception) -> bool:
         return True
     msg = str(e).lower()
     return any(w in msg for w in _FALLTHROUGH_WORDS)
+
+
+# Explicit output cap. The Itinerary schema is large (multi-day, 4 meals/day,
+# 5 options/meal, each with name+distance+specialty) -- for a 3+ day trip
+# that easily runs past most providers' *default* output token limit, which
+# silently truncates the JSON mid-object. That truncation is what shows up
+# as Groq's "Failed to parse tool call arguments as JSON" / tool_use_failed
+# -- it is NOT transient, so retrying the same provider won't help; only a
+# high enough max_tokens fixes it.
+MAX_OUTPUT_TOKENS = 8192
 
 
 def _get_groq():
@@ -90,33 +114,9 @@ def _get_groq():
             temperature=0,
             timeout=TIMEOUT,
             max_retries=MAX_RETRIES,
+            max_tokens=MAX_OUTPUT_TOKENS,
         )
     return _clients["groq"]
-
-
-def _get_gemini():
-    if "gemini" not in _clients:
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        key = settings.gemini_api_key
-        # A Google AI Studio key looks like "AIzaSy...". A key starting with
-        # "AQ." is a different credential type (e.g. an OAuth/Vertex token)
-        # and will not authenticate against the generativelanguage API --
-        # this is a common cause of persistent Gemini timeouts/auth errors
-        # that look like transient 504s but never actually succeed.
-        if key and not key.startswith("AIza"):
-            logger.warning(
-                "GEMINI_API_KEY does not look like a Google AI Studio key "
-                "(expected it to start with 'AIza'). Get one from "
-                "https://aistudio.google.com/apikey if Gemini calls keep failing."
-            )
-        # No temperature: this Gemini model ignores it and warns.
-        _clients["gemini"] = ChatGoogleGenerativeAI(
-            model=settings.gemini_model,
-            google_api_key=settings.gemini_api_key,
-            timeout=TIMEOUT,
-            max_retries=MAX_RETRIES,
-        )
-    return _clients["gemini"]
 
 
 def _get_openai():
@@ -128,6 +128,7 @@ def _get_openai():
             temperature=0,
             timeout=TIMEOUT,
             max_retries=MAX_RETRIES,
+            max_tokens=MAX_OUTPUT_TOKENS,
         )
     return _clients["openai"]
 
@@ -142,6 +143,7 @@ def _get_openrouter():
             temperature=0,
             timeout=TIMEOUT,
             max_retries=MAX_RETRIES,
+            max_tokens=MAX_OUTPUT_TOKENS,
         )
     return _clients["openrouter"]
 
@@ -156,34 +158,18 @@ def _get_cerebras():
             temperature=0,
             timeout=TIMEOUT,
             max_retries=MAX_RETRIES,
+            max_tokens=MAX_OUTPUT_TOKENS,
         )
     return _clients["cerebras"]
 
 
-def _get_anthropic():
-    if "anthropic" not in _clients:
-        from langchain_anthropic import ChatAnthropic
-        kwargs = {
-            "model": settings.anthropic_model,
-            "api_key": settings.anthropic_api_key,
-            "temperature": 0,
-            "timeout": TIMEOUT,
-            "max_retries": MAX_RETRIES,
-        }
-        if settings.anthropic_workspace_id:
-            kwargs["default_headers"] = {"anthropic-workspace-id": settings.anthropic_workspace_id}
-        _clients["anthropic"] = ChatAnthropic(**kwargs)
-    return _clients["anthropic"]
-
-
 # (name, getter, settings attribute holding its API key)
+# Gemini and Anthropic removed from the chain.
 _PROVIDER_CHAIN = [
     ("groq", _get_groq, "groq_api_key"),
     ("openai", _get_openai, "openai_api_key"),
-    ("gemini", _get_gemini, "gemini_api_key"),
     ("openrouter", _get_openrouter, "openrouter_api_key"),
     ("cerebras", _get_cerebras, "cerebras_api_key"),
-    ("anthropic", _get_anthropic, "anthropic_api_key"),
 ]
 
 

@@ -21,11 +21,23 @@ _ONE_DAY_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Hypothetical feasibility questions like "is it possible in 100",
+# "is this doable in 500", "can it be done in 2000", "possible in 1000?" --
+# these must NOT be treated as a real budget change. The LLM is asked to
+# classify these as query_existing, but that's a judgment call it doesn't
+# always get right, so this regex catches the common phrasing deterministically
+# as a backstop, regardless of what the LLM decided.
+_FEASIBILITY_RE = re.compile(
+    r"\b(is\s+it|is\s+this|is\s+dis|can\s+it|can\s+this|is\s+that)\b.{0,20}\b"
+    r"(possible|doable|feasible|do[- ]?able|be\s+done)\b.{0,15}\bin\b\s*[₹$]?\s*\d",
+    re.IGNORECASE,
+)
+
 SYSTEM_PROMPT = """You are the intent + extraction step of a travel planning agent.
 
 Classify the user's intent into exactly one of:
 - "new_or_modify": user is providing trip details for the CURRENT trip being planned, or wants changes to it, or explicitly asks you to plan/build a full itinerary.
-- "query_existing": user is asking about the CURRENT trip's already-generated itinerary (e.g. "what's my hotel", "show me day 2").
+- "query_existing": user is asking about the CURRENT trip's already-generated itinerary (e.g. "what's my hotel", "show me day 2"). This ALSO includes hypothetical feasibility questions about a DIFFERENT budget than the current one -- e.g. "is it possible in 1000", "can this be done in 500", "what about a budget of 2000" -- these are asking you to JUDGE feasibility against the existing itinerary/notes, NOT asking you to actually change the trip's budget. Classify these as query_existing and leave updated_trip_state.budget UNCHANGED (do not update it to the hypothetical figure). Only classify as new_or_modify if the user clearly commits to the new budget (e.g. "make it 500 instead", "change my budget to 2000", "set budget 1500") rather than just asking "is X possible".
 - "query_other_trip": user is asking about a DIFFERENT, previously planned trip by name, OR asking to see/show a specific already-generated itinerary by destination name (e.g. "what was my hotel in Goa", "what did I plan for Manali", "show me the Ooty itinerary", "show my Vagamon plan").
 - "list_trips": user is asking to see all their trips (e.g. "what trips do I have", "show my trip history").
 - "greeting": user is just greeting (hi, hello, hey, vanakkam) with no trip details or travel question yet.
@@ -52,6 +64,13 @@ Any specific instructions about the itinerary itself (e.g. "skip Old Goa",
 "keep day 3 in South Goa only", "no water sports", "vegetarian food only")
 must be added as short strings to the notes list. Keep existing notes and
 append new ones; remove a note only if the user withdraws it.
+
+DAY SWAP REQUESTS: if the user asks to swap/exchange the plans of two
+specific days (e.g. "swap day 2 and day 3", "switch day 1 and day 2 plans"),
+add a note in this EXACT format: "SWAP_DAYS: day X and day Y" (using the
+actual day numbers they gave). Do NOT try to rearrange or describe the
+swap yourself -- just capture it as this exact note string so it can be
+applied deterministically afterward.
 
 FLIGHT AND CAR RENTAL -- OPTIONAL, USER-STATED ONLY:
 - If the user mentions their own flight details (airline, flight number,
@@ -313,6 +332,17 @@ async def run_collect(trip_state: dict, user_message: str, trip_status: str = "n
     # Guardrail: correct intent BEFORE missing-field computation.
     if result.intent == "query_existing" and trip_status != "generated":
         result.intent = "new_or_modify"
+
+    # Deterministic backstop: "is it possible in X" style questions must
+    # always be answered as a feasibility check against the existing trip,
+    # never treated as an actual budget change -- regardless of what the
+    # LLM classified this as, or what budget value it may have extracted.
+    # Covers both clean "generated" trips and ones accepted with issues.
+    if trip_status in ("generated", "generated_with_issues") and _FEASIBILITY_RE.search(user_message):
+        result.intent = "query_existing"
+        # Undo any budget edit the LLM might have made off this message --
+        # the trip's real budget must stay exactly what it was before.
+        result.updated_trip_state.budget = trip_state.get("budget")
 
     if result.intent == "new_or_modify":
         merged = result.updated_trip_state.model_dump()

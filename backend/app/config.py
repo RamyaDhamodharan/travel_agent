@@ -4,18 +4,14 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     groq_api_key: str = ""
-    gemini_api_key: str = ""
     google_maps_api_key: str = ""
     openai_api_key: str = ""
-    anthropic_api_key: str = ""
-    anthropic_workspace_id: str = ""
     openrouter_api_key: str = ""
     cerebras_api_key: str = ""
     tavily_api_key: str = ""
 
     groq_model: str = "openai/gpt-oss-120b"
     openai_model: str = "gpt-5.4-mini"
-    gemini_model: str = "gemini-3.8-flash"
 
     openrouter_model: str = "deepseek/deepseek-chat"
     cerebras_model: str = "llama-3.3-70b"

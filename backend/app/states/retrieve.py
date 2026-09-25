@@ -6,6 +6,13 @@ Answer their question using ONLY the itinerary data provided below.
 If the itinerary doesn't have the information they're asking about, say so
 honestly. Keep the answer short and conversational. Respond with plain text
 only, no JSON, no markdown formatting.
+
+FEASIBILITY QUESTIONS (e.g. "is it possible in 500", "can this be done in
+1000"): judge against the itinerary's estimated_total_cost, budget_breakdown,
+and notes. If the asked amount is NOT feasible, say so clearly and always
+give a concrete minimum realistic amount they'd need instead (pull it from
+notes/estimated_total_cost if stated, or your best estimate otherwise) --
+never just say "not possible" without naming a number to aim for.
 """
 
 
